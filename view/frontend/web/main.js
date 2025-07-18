@@ -339,14 +339,7 @@
                 
                 // Restore previous category selections if they still exist
                 var widget = this;
-                this.element.find('.ymm-category-select').each(function(index) {
-                  if (currentCategorySelections[index] && currentCategorySelections[index] !== '') {
-                    var option = $(this).find('option[value="' + currentCategorySelections[index] + '"]');
-                    if (option.length > 0) {
-                      $(this).val(currentCategorySelections[index]);
-                    }
-                  }
-                });
+                this.restoreCategorySelections(currentCategorySelections, 0);
                 
                 if (this.wordSearchEnabled){
                   this.extraContainer.addClass('or-search');                  
@@ -367,6 +360,43 @@
             
       }	  
     },
+
+    restoreCategorySelections : function(savedSelections, selectionIndex) {
+      var widget = this;
+      
+      if (selectionIndex >= savedSelections.length) {
+        return; // No more selections to restore
+      }
+      
+      var currentSelection = savedSelections[selectionIndex];
+      if (!currentSelection || currentSelection === '') {
+        return; // Nothing to restore at this level
+      }
+      
+      var categorySelects = this.element.find('.ymm-category-select');
+      if (selectionIndex >= categorySelects.length) {
+        return; // No more selects available
+      }
+      
+      var currentSelect = $(categorySelects[selectionIndex]);
+      var option = currentSelect.find('option[value="' + currentSelection + '"]');
+      
+      if (option.length > 0) {
+        currentSelect.val(currentSelection);
+        
+        // Check if this category has children and restore them
+        if (this.categories[currentSelection] && this.categories[currentSelection].children) {
+          // Add the subcategory select
+          this.addCategorySelect(this.categories[currentSelection].children);
+          
+          // Restore the next level after a short delay to ensure the select is added
+          setTimeout(function() {
+            widget.restoreCategorySelections(savedSelections, selectionIndex + 1);
+          }, 10);
+        }
+      }
+    },
+
     hideExtra : function(){
   
       if (this.categorySearchEnabled || this.wordSearchEnabled){
@@ -439,11 +469,25 @@
       
       select[0].options[0] = new Option(this.categoryDefOptionTitle, '');
       
-      var cId;  
+      // Create an array of category objects for sorting
+      var categoryOptions = [];
       var l = categoryIds.length;		  
       for (var i=0;i<l;i++){
-        cId = categoryIds[i];
-        select[0].options[i+1] = new Option(this.categories[cId].title, cId);
+        var cId = categoryIds[i];
+        categoryOptions.push({
+          id: cId,
+          title: this.categories[cId].title
+        });
+      }
+      
+      // Sort categories alphabetically by title
+      categoryOptions.sort(function(a, b) {
+        return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+      });
+      
+      // Add sorted options to the select
+      for (var i=0;i<categoryOptions.length;i++){
+        select[0].options[i+1] = new Option(categoryOptions[i].title, categoryOptions[i].id);
       }    
     
     },
