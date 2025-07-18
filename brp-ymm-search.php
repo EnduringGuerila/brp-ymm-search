@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: BRP YMM Search
- * Description: Customer can search for replacement parts by vehicle make, model and year. Applied modifications: year_first, improved fitment display, configurable category exclusions
- * Version: 1.0.12.1
+ * Description: Customer can search for replacement parts by vehicle make, model and year. Applied modifications: year_first, improved fitment display, configurable category exclusions, fixed category dropdown memory and alphabetical sorting
+ * Version: 1.0.12.2
  * Author: BRP / Tim Kirtland
  * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     
