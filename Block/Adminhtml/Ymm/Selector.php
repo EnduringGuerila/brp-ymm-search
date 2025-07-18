@@ -60,4 +60,16 @@ class Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector {
   }  
   
   
+  
+  public function getExcludedCategoryIds() 
+  {
+    $excluded = get_option('ymm_excluded_category_ids', '');
+    if (empty($excluded)) {
+      // Default to the original hardcoded exclusions if no configuration is set
+      return '48,2266,80';
+    }
+    return $excluded;
+  }  
+  
+  
 }

@@ -9,6 +9,7 @@ global $wpdb;
 delete_option('ymm_display_vehicle_fitment');
 delete_option('ymm_enable_category_dropdowns');
 delete_option('ymm_enable_search_field');
+delete_option('ymm_excluded_category_ids');
 
 // Tables
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->base_prefix}ymm" );

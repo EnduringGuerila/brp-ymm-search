@@ -76,11 +76,17 @@ class Pektsekye_Ymm_Controller_Adminhtml_Ymm_Selector {
             }
             update_option('ymm_enable_category_dropdowns', $categoryDropdowns);
             
-            $categoryDropdowns = 'no';
+            $searchField = 'no';
             if (isset($_POST['ymm_enable_search_field']) && isset($_POST['ymm_enable_search_field']) == 1){
-              $categoryDropdowns = 'yes';
+              $searchField = 'yes';
             }
-            update_option('ymm_enable_search_field', $categoryDropdowns);                        
+            update_option('ymm_enable_search_field', $searchField);
+            
+            // Handle excluded category IDs
+            $excludedCategoryIds = isset($_POST['ymm_excluded_category_ids']) ? sanitize_text_field($_POST['ymm_excluded_category_ids']) : '';
+            update_option('ymm_excluded_category_ids', $excludedCategoryIds);
+            
+            Pektsekye_YMM()->setMessage(__('Configuration has been saved.', 'ymm-search'));                        
           }         
         break;                                                                                      
       }

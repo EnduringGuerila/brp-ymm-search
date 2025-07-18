@@ -94,11 +94,18 @@ class Pektsekye_Ymm_Controller_Selector {
     }
 
 	$rootCategories = array_keys($rootCategories);
-	
-	$allowCategoryIds = array(5351, 5676, 5677, 5681, 5683, 5684, 5685, 5686, 5687, 5688, 5680, 378, 2269, 379);
-	$rootCategories = array_values(array_intersect($rootCategories, $allowCategoryIds));
 
-    echo json_encode(array('rootCategoryIds'=>$rootCategories,'categories'=>$categoryTree));
+	// Get excluded category IDs from configuration
+	$excludedCategoryIdsString = get_option('ymm_excluded_category_ids', '');
+	if (!empty($excludedCategoryIdsString)) {
+		$excludeCategoryIds = array_map('intval', array_filter(explode(',', $excludedCategoryIdsString)));
+	} else {
+		// Default to the original hardcoded exclusions if no configuration is set
+		$excludeCategoryIds = array(48, 2266, 80);
+	}
+	
+	// Remove excluded categories from the root categories
+	$rootCategories = array_values(array_diff($rootCategories, $excludeCategoryIds));    echo json_encode(array('rootCategoryIds'=>$rootCategories,'categories'=>$categoryTree));
     if ($isAjaxCall){
       exit;
     }     

@@ -50,7 +50,11 @@ $message = $this->getMessage();
           <br/><br/>    
           <input type="checkbox" name="ymm_enable_search_field" id="ymm_enable_search_field" value="1" <?php echo $this->getDisplaySearchField() ? 'checked="checked"' : ''; ?>>
           <label for="ymm_enable_search_field"><?php echo __('Display search text field after selecting make, model', 'ymm-search'); ?></label>
-          <br/><br/>                                                       
+          <br/><br/>
+          <label for="ymm_excluded_category_ids"><?php echo __('Excluded Category IDs (comma-separated)', 'ymm-search'); ?>:</label><br/>
+          <textarea name="ymm_excluded_category_ids" id="ymm_excluded_category_ids" rows="3" cols="80" placeholder="48,2266,80"><?php echo esc_textarea($this->getExcludedCategoryIds()); ?></textarea>
+          <br/><small><?php echo __('Enter the WooCommerce category IDs that should be excluded from the category dropdown, separated by commas. These categories will not appear in the search results.', 'ymm-search'); ?></small>
+          <br/><br/>                                                                                                                                                             
           <input name="submit" id="submit" class="button button-primary" value="<?php echo __('Save Configuration', 'ymm-search') ; ?>" type="submit">      
       </fieldset>
   </form>     
