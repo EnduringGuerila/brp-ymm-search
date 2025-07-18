@@ -1,0 +1,23 @@
+# WordPress specific
+.DS_Store
+.htaccess
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+wp-content/backups/
+wp-content/upgrade/
+wp-content/backup-db/
+wp-content/advanced-cache.php
+wp-content/wp-cache-config.php
+wp-content/cache/
+wp-content/cache/supercache/
+
+# Plugin specific
+*.log
+*.tmp
+*.temp
+.vscode/
+.idea/
+node_modules/
+*.bak
+*.orig
