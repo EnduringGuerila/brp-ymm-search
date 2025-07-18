@@ -36,9 +36,9 @@ class Pektsekye_Ymm_Controller_Adminhtml_Ymm_Selector {
             $mode = isset($_POST['delete_old']) && $_POST['delete_old'] == 1 ? 'delete_old' : 'add_new';                        
             try {                               
               $this->_dbImportHandler->importFromCsvFile($_FILES['import_file'], $mode);
-              Pektsekye_YMM()->setMessage(__('Ymm CSV file has been imported.', 'ymm-search'));                 
+              Pektsekye_YMM()->setMessage(__('Ymm CSV file has been imported.', 'brp-ymm-search'));                 
             } catch (Exception $e){
-              Pektsekye_YMM()->setMessage(__('Ymm CSV file has not been imported.', 'ymm-search') .' '. $e->getMessage(), 'error');                    
+              Pektsekye_YMM()->setMessage(__('Ymm CSV file has not been imported.', 'brp-ymm-search') .' '. $e->getMessage(), 'error');                    
             }
           }
         break; 
@@ -86,7 +86,7 @@ class Pektsekye_Ymm_Controller_Adminhtml_Ymm_Selector {
             $excludedCategoryIds = isset($_POST['ymm_excluded_category_ids']) ? sanitize_text_field($_POST['ymm_excluded_category_ids']) : '';
             update_option('ymm_excluded_category_ids', $excludedCategoryIds);
             
-            Pektsekye_YMM()->setMessage(__('Configuration has been saved.', 'ymm-search'));                        
+            Pektsekye_YMM()->setMessage(__('Configuration has been saved.', 'brp-ymm-search'));                        
           }         
         break;                                                                                      
       }

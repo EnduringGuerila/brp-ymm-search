@@ -1,22 +1,22 @@
 <?php
 /**
- * Plugin Name: YMM Search
- * Description: Customer can search for replacment parts by vehicle make, model and year. Applied modifications: year_first
+ * Plugin Name: BRP YMM Search
+ * Description: Customer can search for replacement parts by vehicle make, model and year. Applied modifications: year_first, improved fitment display, configurable category exclusions
  * Version: 1.0.12.1
- * Author: Pektsekye
- * Author URI: http://hottons.com
+ * Author: BRP / Tim Kirtland
+ * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     
  * Requires at least: 4.7
  * Tested up to: 5.2
  *
- * Text Domain: ymm-search
+ * Text Domain: brp-ymm-search
  * Domain Path: /i18n/languages
  *
  * WC requires at least: 3.0
  * WC tested up to: 3.5.1
  * 
- * @package Ymm
- * @author Pektsekye
+ * @package BrpYmm
+ * @author BRP / Tim Kirtland
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -139,7 +139,7 @@ final class Pektsekye_Ymm {
     }            
 
     $tabs['ymm'] = array(
-      'title'    => __( 'Vehicle Fitment', 'ymm-search'),
+      'title'    => __( 'Vehicle Fitment', 'brp-ymm-search'),
       'priority' => 40,
       'callback' => array($block, 'page_init')
     ); 
@@ -171,7 +171,7 @@ final class Pektsekye_Ymm {
 
 
   public function load_textdomain() {
-    load_plugin_textdomain( 'ymm-search', false, basename( dirname( __FILE__ ) ) . '/i18n/languages' ); 
+    load_plugin_textdomain( 'brp-ymm-search', false, basename( dirname( __FILE__ ) ) . '/i18n/languages' ); 
   }
   
   
@@ -182,7 +182,7 @@ final class Pektsekye_Ymm {
 
 
   public function set_admin_menu() {
-    add_menu_page( _x( 'YMM Search', 'Admin menu', 'ymm-search'), _x( 'YMM Search', 'Admin menu', 'ymm-search'), 'manage_woocommerce', 'ymm', array( new Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector(), 'page_init' ) );  
+    add_menu_page( _x( 'BRP YMM Search', 'Admin menu', 'brp-ymm-search'), _x( 'BRP YMM Search', 'Admin menu', 'brp-ymm-search'), 'manage_woocommerce', 'ymm', array( new Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector(), 'page_init' ) );  
   }
   
 
