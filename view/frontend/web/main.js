@@ -96,6 +96,81 @@
           Cookies.set(this.ymmCookieName, JSON.stringify(selected)); 
         }                
       }    
+    },
+    
+    
+    saveCategorySelections : function() {
+      var categorySelections = [];
+      this.element.find('.ymm-category-select').each(function() {
+        categorySelections.push($(this).val());
+      });
+      
+      if (categorySelections.length > 0) {
+        var cookie = Cookies.get(this.ymmCookieName);
+        var selected = {categories: categorySelections};
+        
+        if (cookie) {
+          try {
+            var selectedOld = $.parseJSON(cookie);
+            if (selectedOld) {
+              selected = selectedOld;
+              selected.categories = categorySelections;
+            }
+          } catch (e) {}
+        }
+        
+        Cookies.set(this.ymmCookieName, JSON.stringify(selected));
+      }
+    },
+    
+    
+    restoreCategorySelections : function() {
+      var cookie = Cookies.get(this.ymmCookieName);
+      if (cookie) {
+        try {
+          var selected = $.parseJSON(cookie);
+          if (selected && selected.categories && selected.categories.length > 0) {
+            this.applyCategorySelections(selected.categories, 0);
+          }
+        } catch (e) {}
+      }
+    },
+    
+    
+    applyCategorySelections : function(savedSelections, selectionIndex) {
+      var widget = this;
+      
+      if (selectionIndex >= savedSelections.length) {
+        return; // No more selections to restore
+      }
+      
+      var currentSelection = savedSelections[selectionIndex];
+      if (!currentSelection || currentSelection === '') {
+        return; // Nothing to restore at this level
+      }
+      
+      var categorySelects = this.element.find('.ymm-category-select');
+      if (selectionIndex >= categorySelects.length) {
+        return; // No more selects available
+      }
+      
+      var currentSelect = $(categorySelects[selectionIndex]);
+      var option = currentSelect.find('option[value="' + currentSelection + '"]');
+      
+      if (option.length > 0) {
+        currentSelect.val(currentSelection);
+        
+        // Check if this category has children and restore them
+        if (this.categories[currentSelection] && this.categories[currentSelection].children) {
+          // Add the subcategory select
+          this.addCategorySelect(this.categories[currentSelection].children);
+          
+          // Restore the next level after a short delay to ensure the select is added
+          setTimeout(function() {
+            widget.applyCategorySelections(savedSelections, selectionIndex + 1);
+          }, 10);
+        }
+      }
     },  
   
   
@@ -120,6 +195,11 @@
             selected.vehicles.push(vehicle);
             selected.vehicles.sort($.proxy(this.sortCaseIns, this));
           }
+        }
+        
+        // Preserve existing categories when adding vehicle
+        if (selectedOld && selectedOld.categories) {
+          selected.categories = selectedOld.categories;
         }           
       }    
       
@@ -321,25 +401,6 @@
              
       if (this.lastLevelIsSelected()){
         
-        // Store current category selections before clearing
-        var currentCategorySelections = [];
-        this.element.find('.ymm-category-select').each(function() {
-          currentCategorySelections.push($(this).val());
-        });
-        
-        // Check for stored category selections from previous search
-        var storedCategorySelections = null;
-        var categoryCookie = Cookies.get(this.ymmCookieName + '_categories');
-        if (categoryCookie && currentCategorySelections.length === 0) {
-          try {
-            storedCategorySelections = $.parseJSON(categoryCookie);
-            // Clear the cookie after reading it
-            Cookies.remove(this.ymmCookieName + '_categories');
-          } catch (e) {
-            // Invalid JSON, ignore
-          }
-        }
-        
         this.rootCategoryIds = [];
         this.categories = {}; 
           
@@ -350,12 +411,8 @@
               if (this.rootCategoryIds.length > 0){
                 this.addCategorySelect(this.rootCategoryIds);
                 
-                // Restore previous category selections if they still exist, or stored selections from search
-                var selectionsToRestore = currentCategorySelections.length > 0 ? currentCategorySelections : storedCategorySelections;
-                if (selectionsToRestore && selectionsToRestore.length > 0) {
-                  var widget = this;
-                  this.restoreCategorySelections(selectionsToRestore, 0);
-                }
+                // Restore previous category selections
+                this.restoreCategorySelections();
                 
                 if (this.wordSearchEnabled){
                   this.extraContainer.addClass('or-search');                  
@@ -375,41 +432,8 @@
         }
             
       }	  
-    },    restoreCategorySelections : function(savedSelections, selectionIndex) {
-      var widget = this;
-      
-      if (selectionIndex >= savedSelections.length) {
-        return; // No more selections to restore
-      }
-      
-      var currentSelection = savedSelections[selectionIndex];
-      if (!currentSelection || currentSelection === '') {
-        return; // Nothing to restore at this level
-      }
-      
-      var categorySelects = this.element.find('.ymm-category-select');
-      if (selectionIndex >= categorySelects.length) {
-        return; // No more selects available
-      }
-      
-      var currentSelect = $(categorySelects[selectionIndex]);
-      var option = currentSelect.find('option[value="' + currentSelection + '"]');
-      
-      if (option.length > 0) {
-        currentSelect.val(currentSelection);
-        
-        // Check if this category has children and restore them
-        if (this.categories[currentSelection] && this.categories[currentSelection].children) {
-          // Add the subcategory select
-          this.addCategorySelect(this.categories[currentSelection].children);
-          
-          // Restore the next level after a short delay to ensure the select is added
-          setTimeout(function() {
-            widget.restoreCategorySelections(savedSelections, selectionIndex + 1);
-          }, 10);
-        }
-      }
     },
+
 
     hideExtra : function(){
   
@@ -519,7 +543,10 @@
         } else {
           this.submitCategory(cId);
         }
-      }        
+      }
+      
+      // Save category selections when they change
+      this.saveCategorySelections();        
     },  
       
       
@@ -568,15 +595,6 @@
     submitSearch : function(){
 
       var searchWord = this.searchField.val();         
-      
-      // Store current category selections before search
-      var categorySelections = [];
-      this.element.find('.ymm-category-select').each(function() {
-        categorySelections.push($(this).val());
-      });
-      if (categorySelections.length > 0) {
-        Cookies.set(this.ymmCookieName + '_categories', JSON.stringify(categorySelections));
-      }
 
       if (searchWord == '' && this.rootCategoryIds.length > 0){
         var categoryId = this.getLastSelectedCategory();
