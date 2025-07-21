@@ -316,7 +316,7 @@
       
 
     showExtra : function(values){ 
-      
+  
       this.hideExtra(); 
              
       if (this.lastLevelIsSelected()){
@@ -326,6 +326,19 @@
         this.element.find('.ymm-category-select').each(function() {
           currentCategorySelections.push($(this).val());
         });
+        
+        // Check for stored category selections from previous search
+        var storedCategorySelections = null;
+        var categoryCookie = Cookies.get(this.ymmCookieName + '_categories');
+        if (categoryCookie && currentCategorySelections.length === 0) {
+          try {
+            storedCategorySelections = $.parseJSON(categoryCookie);
+            // Clear the cookie after reading it
+            Cookies.remove(this.ymmCookieName + '_categories');
+          } catch (e) {
+            // Invalid JSON, ignore
+          }
+        }
         
         this.rootCategoryIds = [];
         this.categories = {}; 
@@ -337,9 +350,12 @@
               if (this.rootCategoryIds.length > 0){
                 this.addCategorySelect(this.rootCategoryIds);
                 
-                // Restore previous category selections if they still exist
-                var widget = this;
-                this.restoreCategorySelections(currentCategorySelections, 0);
+                // Restore previous category selections if they still exist, or stored selections from search
+                var selectionsToRestore = currentCategorySelections.length > 0 ? currentCategorySelections : storedCategorySelections;
+                if (selectionsToRestore && selectionsToRestore.length > 0) {
+                  var widget = this;
+                  this.restoreCategorySelections(selectionsToRestore, 0);
+                }
                 
                 if (this.wordSearchEnabled){
                   this.extraContainer.addClass('or-search');                  
@@ -359,9 +375,7 @@
         }
             
       }	  
-    },
-
-    restoreCategorySelections : function(savedSelections, selectionIndex) {
+    },    restoreCategorySelections : function(savedSelections, selectionIndex) {
       var widget = this;
       
       if (selectionIndex >= savedSelections.length) {
@@ -554,6 +568,15 @@
     submitSearch : function(){
 
       var searchWord = this.searchField.val();         
+      
+      // Store current category selections before search
+      var categorySelections = [];
+      this.element.find('.ymm-category-select').each(function() {
+        categorySelections.push($(this).val());
+      });
+      if (categorySelections.length > 0) {
+        Cookies.set(this.ymmCookieName + '_categories', JSON.stringify(categorySelections));
+      }
 
       if (searchWord == '' && this.rootCategoryIds.length > 0){
         var categoryId = this.getLastSelectedCategory();

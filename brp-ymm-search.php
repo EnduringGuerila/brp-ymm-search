@@ -66,7 +66,10 @@ final class Pektsekye_Ymm {
       include_once( 'Block/Adminhtml/Ymm/Selector.php' );
       
       include_once( 'Block/Adminhtml/Product/Edit/Restriction.php' );
-      new Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction();                          
+      new Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction();
+      
+      include_once( 'Block/Adminhtml/Product/QuickEdit.php' );
+      new Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit();                          
     }    
   }
   

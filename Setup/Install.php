@@ -16,11 +16,11 @@ class Pektsekye_Ymm_Setup_Install {
 	
 		if ( !class_exists( 'WooCommerce' ) ) { 
 		  deactivate_plugins('ymm');
-		  wp_die( __( 'YMM requires WooCommerce to run. Please install WooCommerce and activate.', 'ymm-search' ) );
+		  wp_die( __( 'YMM requires WooCommerce to run. Please install WooCommerce and activate.', 'brp-ymm-search' ) );
 	  }
 
     if ( version_compare( WC()->version, '3.0', "<" ) ) {
-      wp_die(sprintf(__( 'WooCommerce %s or higher is required (You are running %s)', 'ymm-search' ), '3.0', WC()->version));
+      wp_die(sprintf(__( 'WooCommerce %s or higher is required (You are running %s)', 'brp-ymm-search' ), '3.0', WC()->version));
     }
 				   	  	
 		self::create_tables();
