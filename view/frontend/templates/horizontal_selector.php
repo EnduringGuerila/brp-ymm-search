@@ -53,7 +53,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                <table width="100%">
                  <tr>
                   <td class="ymm-td-input">                  
-                    <input class="input-text ymm-search-field" type="text" name="s" placeholder="<?php echo __('Search by part name or keyword...', 'brp-ymm-search'); ?>" value="<?php echo isset($_GET['s']) ? htmlspecialchars(stripslashes($_GET['s'])) : ''; ?>"/>
+                    <input class="input-text ymm-search-field" type="text" name="s" value="<?php echo isset($_GET['s']) ? htmlspecialchars(stripslashes($_GET['s'])) : ''; ?>"/>
                   </td>                        
                   <td class="ymm-td-button">                       
                     <button type="submit" title="<?php echo __('Search', 'ymm-search') ?>" class="button"><span><span><?php echo __('Search', 'ymm-search') ?></span></span></button>		      		            	          		                                                                       

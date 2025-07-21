@@ -4,7 +4,70 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
+class Pektsekye_Ymm_Block_Adminhtm        }
+    }
+    
+    public function debug_bulk_edit() {
+        if ( isset( $_POST['post_type'] ) && $_POST['post_type'] === 'product' && isset( $_POST['bulk_edit'] ) ) {
+            error_log( 'YMM Bulk Edit Debug: POST data = ' . print_r( $_POST, true ) );
+        }
+    }
+    
+    public function save_bulk_edit_posts( $post_ids ) {
+        error_log( 'YMM Debug: save_bulk_edit_posts called with IDs: ' . print_r( $post_ids, true ) );
+        
+        if ( isset( $_POST['ymm_bulk_action'] ) && $_POST['ymm_bulk_action'] !== '' ) {
+            $action = sanitize_text_field( $_POST['ymm_bulk_action'] );
+            $ymm_data = isset( $_POST['ymm_data'] ) ? sanitize_textarea_field( $_POST['ymm_data'] ) : '';
+            
+            error_log( 'YMM Debug: Bulk action = ' . $action . ', data = ' . $ymm_data );
+            
+            foreach ( $post_ids as $post_id ) {
+                switch ( $action ) {
+                    case 'replace':
+                        $this->save_ymm_data( $post_id, $ymm_data );
+                        break;
+                    case 'add':
+                        $existing_data = $this->_db->getYmmDataByProductId( $post_id );
+                        $existing_formatted = $this->format_ymm_data_for_edit( $existing_data );
+                        $combined_data = trim( $existing_formatted . "\n" . $ymm_data );
+                        $this->save_ymm_data( $post_id, $combined_data );
+                        break;
+                    case 'remove':
+                        $this->_db->deleteYmmDataByProductId( $post_id );
+                        break;
+                }
+            }
+        }
+    }
+    
+    public function save_post_bulk_edit( $post_id ) {
+        if ( isset( $_POST['bulk_edit'] ) && isset( $_POST['post_type'] ) && $_POST['post_type'] === 'product' ) {
+            error_log( 'YMM Debug: save_post_bulk_edit called for post ID: ' . $post_id );
+            
+            if ( isset( $_POST['ymm_bulk_action'] ) && $_POST['ymm_bulk_action'] !== '' ) {
+                $action = sanitize_text_field( $_POST['ymm_bulk_action'] );
+                $ymm_data = isset( $_POST['ymm_data'] ) ? sanitize_textarea_field( $_POST['ymm_data'] ) : '';
+                
+                switch ( $action ) {
+                    case 'replace':
+                        $this->save_ymm_data( $post_id, $ymm_data );
+                        break;
+                    case 'add':
+                        $existing_data = $this->_db->getYmmDataByProductId( $post_id );
+                        $existing_formatted = $this->format_ymm_data_for_edit( $existing_data );
+                        $combined_data = trim( $existing_formatted . "\n" . $ymm_data );
+                        $this->save_ymm_data( $post_id, $combined_data );
+                        break;
+                    case 'remove':
+                        $this->_db->deleteYmmDataByProductId( $post_id );
+                        break;
+                }
+            }
+        }
+    }
+    
+    public function save_quick_edit_data( $product ) {oduct_QuickEdit {
 
     protected $_db;
     
@@ -15,14 +78,8 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
         // Add quick edit fields
         add_action( 'woocommerce_product_quick_edit_end', array( $this, 'add_quick_edit_fields' ) );
         
-        // Add bulk edit fields
-        add_action( 'woocommerce_product_bulk_edit_end', array( $this, 'add_bulk_edit_fields' ) );
-        
         // Save quick edit data
         add_action( 'woocommerce_product_quick_edit_save', array( $this, 'save_quick_edit_data' ), 10, 1 );
-        
-        // Save bulk edit data
-        add_action( 'woocommerce_product_bulk_edit_save', array( $this, 'save_bulk_edit_data' ), 10, 1 );
         
         // Add custom column to products list
         add_filter( 'manage_edit-product_columns', array( $this, 'add_product_column' ) );
@@ -80,60 +137,11 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
         <?php
     }
     
-    public function add_bulk_edit_fields() {
-        ?>
-        <div class="inline-edit-group">
-            <label class="alignleft">
-                <span class="title"><?php _e( 'YMM Data', 'brp-ymm-search' ); ?></span>
-                <select name="ymm_bulk_action" class="ymm-bulk-action">
-                    <option value=""><?php _e( '— No change —', 'brp-ymm-search' ); ?></option>
-                    <option value="replace"><?php _e( 'Replace YMM data', 'brp-ymm-search' ); ?></option>
-                    <option value="add"><?php _e( 'Add to YMM data', 'brp-ymm-search' ); ?></option>
-                    <option value="remove"><?php _e( 'Remove all YMM data', 'brp-ymm-search' ); ?></option>
-                </select>
-            </label>
-        </div>
-        <div class="inline-edit-group ymm-bulk-data-group" style="display: none;">
-            <label class="alignleft">
-                <span class="title"><?php _e( 'YMM Data', 'brp-ymm-search' ); ?></span>
-                <textarea name="ymm_data" class="ymm-data-field" rows="3" placeholder="<?php _e( 'Make, Model, Year From, Year To (one per line)', 'brp-ymm-search' ); ?>"></textarea>
-            </label>
-            <p class="description">
-                <?php _e( 'Format: Make, Model, Year From, Year To (one vehicle per line)', 'brp-ymm-search' ); ?>
-                <br><?php _e( 'Example: Toyota, Camry, 2015, 2020', 'brp-ymm-search' ); ?>
-            </p>
-        </div>
-        <?php
-    }
-    
     public function save_quick_edit_data( $product ) {
         if ( isset( $_POST['ymm_data'] ) ) {
             $product_id = $product->get_id();
             $ymm_data = sanitize_textarea_field( $_POST['ymm_data'] );
             $this->save_ymm_data( $product_id, $ymm_data );
-        }
-    }
-    
-    public function save_bulk_edit_data( $product ) {
-        if ( isset( $_POST['ymm_bulk_action'] ) && $_POST['ymm_bulk_action'] !== '' ) {
-            $product_id = $product->get_id();
-            $action = sanitize_text_field( $_POST['ymm_bulk_action'] );
-            $ymm_data = isset( $_POST['ymm_data'] ) ? sanitize_textarea_field( $_POST['ymm_data'] ) : '';
-            
-            switch ( $action ) {
-                case 'replace':
-                    $this->save_ymm_data( $product_id, $ymm_data );
-                    break;
-                case 'add':
-                    $existing_data = $this->_db->getYmmDataByProductId( $product_id );
-                    $existing_formatted = $this->format_ymm_data_for_edit( $existing_data );
-                    $combined_data = trim( $existing_formatted . "\n" . $ymm_data );
-                    $this->save_ymm_data( $product_id, $combined_data );
-                    break;
-                case 'remove':
-                    $this->_db->deleteYmmDataByProductId( $product_id );
-                    break;
-            }
         }
     }
     
