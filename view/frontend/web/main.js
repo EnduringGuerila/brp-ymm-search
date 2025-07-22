@@ -105,6 +105,8 @@
         categorySelections.push($(this).val());
       });
       
+      console.log('YMM Debug: Saving category selections:', categorySelections);
+      
       if (categorySelections.length > 0) {
         var cookie = Cookies.get(this.ymmCookieName);
         var selected = {categories: categorySelections};
@@ -120,19 +122,26 @@
         }
         
         Cookies.set(this.ymmCookieName, JSON.stringify(selected));
+        console.log('YMM Debug: Cookie saved:', JSON.stringify(selected));
       }
     },
     
     
     restoreCategorySelections : function() {
       var cookie = Cookies.get(this.ymmCookieName);
+      console.log('YMM Debug: Restoring categories, cookie value:', cookie);
+      
       if (cookie) {
         try {
           var selected = $.parseJSON(cookie);
+          console.log('YMM Debug: Parsed cookie data:', selected);
           if (selected && selected.categories && selected.categories.length > 0) {
+            console.log('YMM Debug: Applying category selections:', selected.categories);
             this.applyCategorySelections(selected.categories, 0);
           }
-        } catch (e) {}
+        } catch (e) {
+          console.log('YMM Debug: Error parsing cookie:', e);
+        }
       }
     },
     
@@ -140,17 +149,24 @@
     applyCategorySelections : function(savedSelections, selectionIndex) {
       var widget = this;
       
+      console.log('YMM Debug: Applying selection at index', selectionIndex, 'value:', savedSelections[selectionIndex]);
+      
       if (selectionIndex >= savedSelections.length) {
+        console.log('YMM Debug: No more selections to restore');
         return; // No more selections to restore
       }
       
       var currentSelection = savedSelections[selectionIndex];
       if (!currentSelection || currentSelection === '') {
+        console.log('YMM Debug: Empty selection at index', selectionIndex);
         return; // Nothing to restore at this level
       }
       
       var categorySelects = this.element.find('.ymm-category-select');
+      console.log('YMM Debug: Found', categorySelects.length, 'category selects');
+      
       if (selectionIndex >= categorySelects.length) {
+        console.log('YMM Debug: No select available for index', selectionIndex);
         return; // No more selects available
       }
       
@@ -158,22 +174,24 @@
       var option = currentSelect.find('option[value="' + currentSelection + '"]');
       
       if (option.length > 0) {
+        console.log('YMM Debug: Setting select to value:', currentSelection);
         currentSelect.val(currentSelection);
         
         // Check if this category has children and restore them
         if (this.categories[currentSelection] && this.categories[currentSelection].children) {
+          console.log('YMM Debug: Category has children, adding subcategory select');
           // Add the subcategory select
           this.addCategorySelect(this.categories[currentSelection].children);
-          
+
           // Restore the next level after a short delay to ensure the select is added
           setTimeout(function() {
             widget.applyCategorySelections(savedSelections, selectionIndex + 1);
           }, 10);
         }
+      } else {
+        console.log('YMM Debug: Option not found for value:', currentSelection);
       }
     },  
-  
-  
     garageAdd : function(vehicle){
     
       var selected = {vehicle:vehicle, vehicles:[vehicle]};
