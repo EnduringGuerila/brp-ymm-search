@@ -100,48 +100,32 @@
     
     
     saveCategorySelections : function() {
-      var categorySelections = [];
-      this.element.find('.ymm-category-select').each(function() {
-        categorySelections.push($(this).val());
-      });
-      
-      console.log('YMM Debug: Saving category selections:', categorySelections);
-      
-      if (categorySelections.length > 0) {
-        var cookie = Cookies.get(this.ymmCookieName);
-        var selected = {categories: categorySelections};
-        
-        if (cookie) {
-          try {
-            var selectedOld = $.parseJSON(cookie);
-            if (selectedOld) {
-              selected = selectedOld;
-              selected.categories = categorySelections;
-            }
-          } catch (e) {}
-        }
-        
-        Cookies.set(this.ymmCookieName, JSON.stringify(selected));
-        console.log('YMM Debug: Cookie saved:', JSON.stringify(selected));
-      }
+      // No longer needed - categories are preserved via URL navigation
+      console.log('YMM Debug: Category saving disabled - using URL-based persistence');
     },
     
     
     restoreCategorySelections : function() {
-      var cookie = Cookies.get(this.ymmCookieName);
-      console.log('YMM Debug: Restoring categories, cookie value:', cookie);
+      console.log('YMM Debug: Checking URL for category context');
       
-      if (cookie) {
-        try {
-          var selected = $.parseJSON(cookie);
-          console.log('YMM Debug: Parsed cookie data:', selected);
-          if (selected && selected.categories && selected.categories.length > 0) {
-            console.log('YMM Debug: Applying category selections:', selected.categories);
-            this.applyCategorySelections(selected.categories, 0);
-          }
-        } catch (e) {
-          console.log('YMM Debug: Error parsing cookie:', e);
+      // Extract category from URL path like /product-category/bar-mount/
+      var currentUrl = window.location.href;
+      var categoryMatch = currentUrl.match(/\/product-category\/([^\/]+)\//);
+      
+      if (categoryMatch) {
+        var categorySlug = categoryMatch[1];
+        console.log('YMM Debug: Found category in URL:', categorySlug);
+        
+        // Find category ID by slug in the categories object
+        var targetCategoryId = this.findCategoryBySlug(categorySlug);
+        if (targetCategoryId) {
+          console.log('YMM Debug: Found matching category ID:', targetCategoryId);
+          this.restoreCategoryPath(targetCategoryId);
+        } else {
+          console.log('YMM Debug: No matching category found for slug:', categorySlug);
         }
+      } else {
+        console.log('YMM Debug: No product category found in URL');
       }
     },
     
@@ -191,6 +175,65 @@
       } else {
         console.log('YMM Debug: Option not found for value:', currentSelection);
       }
+    },
+    
+    
+    findCategoryBySlug : function(slug) {
+      // Search through all categories to find one with matching slug/URL
+      for (var categoryId in this.categories) {
+        var category = this.categories[categoryId];
+        if (category.url) {
+          // Extract slug from category URL - could be full URL or just path
+          var urlMatch = category.url.match(/\/product-category\/([^\/\?]+)/);
+          if (urlMatch && urlMatch[1] === slug) {
+            return categoryId;
+          }
+          // Also check if the slug appears anywhere in the URL
+          if (category.url.indexOf(slug) !== -1) {
+            return categoryId;
+          }
+        }
+      }
+      return null;
+    },
+    
+    
+    restoreCategoryPath : function(targetCategoryId) {
+      console.log('YMM Debug: Building category path for ID:', targetCategoryId);
+      
+      // Build the path from root to target category
+      var categoryPath = this.buildCategoryPath(targetCategoryId);
+      if (categoryPath.length > 0) {
+        console.log('YMM Debug: Category path found:', categoryPath);
+        this.applyCategorySelections(categoryPath, 0);
+      }
+    },
+    
+    
+    buildCategoryPath : function(targetCategoryId) {
+      // Find the path from root categories to the target category
+      var path = [];
+      var currentId = targetCategoryId;
+      
+      // Work backwards from target to root
+      while (currentId) {
+        path.unshift(currentId); // Add to beginning of array
+        currentId = this.findParentCategory(currentId);
+      }
+      
+      return path;
+    },
+    
+    
+    findParentCategory : function(childCategoryId) {
+      // Search all categories to find which one has this as a child
+      for (var categoryId in this.categories) {
+        var category = this.categories[categoryId];
+        if (category.children && category.children.indexOf(childCategoryId) !== -1) {
+          return categoryId;
+        }
+      }
+      return null;
     },  
     garageAdd : function(vehicle){
     
@@ -563,8 +606,7 @@
         }
       }
       
-      // Save category selections when they change
-      this.saveCategorySelections();        
+      // Category persistence now handled by URL navigation - no need to save
     },  
       
       
