@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BRP YMM Search
  * Description: Customer can search for parts by vehicle year, make, and model. A fork of ymm-search from Pektsekye
- * Version: 1.0.12.3
+ * Version: 1.0.12.4
  * Author: BRP / Tim Kirtland
  * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     

@@ -265,10 +265,14 @@
       this.disableLevels(firstSelect);
             
       firstSelect[0].length = 1;
+      
+      // Sort first level options using natural sorting
+      var sortedOptions = this.firstLevelOptions.slice(); // Create a copy
+      sortedOptions.sort($.proxy(this.naturalSort, this));
         
-      var l = this.firstLevelOptions.length;		  
+      var l = sortedOptions.length;		  
       for (var i=0;i<l;i++){
-        firstSelect[0].options[i+1] = new Option(this.firstLevelOptions[i], this.firstLevelOptions[i]);
+        firstSelect[0].options[i+1] = new Option(sortedOptions[i], sortedOptions[i]);
       } 
       
       if (this.garageEnabled){          
@@ -362,6 +366,9 @@
         var select = $(element).closest('.level').next().find('.ymm-select');
       else  
         var select = $(element).next('.ymm-select');
+
+      // Sort options using natural sorting for better model ordering
+      options.sort($.proxy(this.naturalSort, this));
     
       var l = options.length;		  
       for (var i=0;i<l;i++)
@@ -712,6 +719,51 @@
       b = b.toLowerCase();
       if (a == b) return 0;
       if (a > b) return 1;
+    },
+    
+    
+    naturalSort : function(a, b) {
+      // Parse model strings like "CRF 450R", "TC 65", "85 SX", "150 XC-W", "1090 Adv", "1290 Super Adv"
+      var parseModel = function(model) {
+        // Remove extra spaces and normalize
+        var normalized = model.trim().replace(/\s+/g, ' ');
+        
+        // Try to match: [letters] [number] [suffix] or [number] [suffix]
+        var match = normalized.match(/^([A-Za-z]*)\s*(\d{1,4})\s*(.*)$/);
+        
+        if (match) {
+          return {
+            prefix: (match[1] || '').toLowerCase(),
+            number: parseInt(match[2], 10),
+            suffix: (match[3] || '').toLowerCase(),
+            original: model
+          };
+        }
+        
+        // Fallback: treat entire string as prefix if no number found
+        return {
+          prefix: normalized.toLowerCase(),
+          number: 0,
+          suffix: '',
+          original: model
+        };
+      };
+      
+      var parsedA = parseModel(a);
+      var parsedB = parseModel(b);
+      
+      // First sort by prefix (alphabetically)
+      if (parsedA.prefix !== parsedB.prefix) {
+        return parsedA.prefix.localeCompare(parsedB.prefix);
+      }
+      
+      // Then sort by number (numerically)
+      if (parsedA.number !== parsedB.number) {
+        return parsedA.number - parsedB.number;
+      }
+      
+      // Finally sort by suffix (alphabetically)
+      return parsedA.suffix.localeCompare(parsedB.suffix);
     }	                  
     
             
