@@ -5,6 +5,7 @@
     
     rootCategoryIds: [],    
     selectedValues : [],
+    isRestoringCategories: false,
      
      
     _create : function () {
@@ -40,7 +41,10 @@
           this.extraContainer.addClass('or-search');
           this.searchAnySelButton.hide();                  
         }                                             
-        this.extraContainer.show();                 
+        this.extraContainer.show();
+        
+        // Restore category selections after they're added
+        this.restoreCategorySelections();                 
       }                           
     },
   
@@ -102,7 +106,11 @@
     saveCategorySelections : function() {
       var categorySelections = [];
       this.element.find('.ymm-category-select').each(function() {
-        categorySelections.push($(this).val());
+        var value = $(this).val();
+        // Only save non-empty selections
+        if (value && value !== '') {
+          categorySelections.push(value);
+        }
       });
 
       console.log('YMM Debug: Saving category selections:', categorySelections);
@@ -123,11 +131,29 @@
 
         Cookies.set(this.ymmCookieName, JSON.stringify(selected));
         console.log('YMM Debug: Cookie saved:', JSON.stringify(selected));
+      } else {
+        // If no categories are selected, remove categories from cookie but preserve vehicle data
+        var cookie = Cookies.get(this.ymmCookieName);
+        if (cookie) {
+          try {
+            var selected = $.parseJSON(cookie);
+            if (selected) {
+              delete selected.categories; // Remove categories key
+              Cookies.set(this.ymmCookieName, JSON.stringify(selected));
+              console.log('YMM Debug: Removed empty categories from cookie');
+            }
+          } catch (e) {}
+        }
       }
     },
     
     
     restoreCategorySelections : function() {
+      if (this.isRestoringCategories) {
+        console.log('YMM Debug: Already restoring categories, skipping...');
+        return;
+      }
+      
       var cookie = Cookies.get(this.ymmCookieName);
       console.log('YMM Debug: Restoring categories, cookie value:', cookie);
 
@@ -136,8 +162,16 @@
           var selected = $.parseJSON(cookie);
           console.log('YMM Debug: Parsed cookie data:', selected);
           if (selected && selected.categories && selected.categories.length > 0) {
-            console.log('YMM Debug: Applying category selections:', selected.categories);
-            this.applyCategorySelections(selected.categories, 0);
+            // Filter out empty values from saved categories
+            var validCategories = selected.categories.filter(function(cat) {
+              return cat && cat !== '';
+            });
+            
+            if (validCategories.length > 0) {
+              console.log('YMM Debug: Applying category selections:', validCategories);
+              this.isRestoringCategories = true;
+              this.applyCategorySelections(validCategories, 0);
+            }
           }
         } catch (e) {
           console.log('YMM Debug: Error parsing cookie:', e);
@@ -152,13 +186,15 @@
       console.log('YMM Debug: Applying selection at index', selectionIndex, 'value:', savedSelections[selectionIndex]);
       
       if (selectionIndex >= savedSelections.length) {
-        console.log('YMM Debug: No more selections to restore');
+        console.log('YMM Debug: No more selections to restore, resetting flag');
+        this.isRestoringCategories = false; // Reset flag when done
         return; // No more selections to restore
       }
       
       var currentSelection = savedSelections[selectionIndex];
       if (!currentSelection || currentSelection === '') {
-        console.log('YMM Debug: Empty selection at index', selectionIndex);
+        console.log('YMM Debug: Empty selection at index', selectionIndex, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag on empty selection
         return; // Nothing to restore at this level
       }
       
@@ -166,7 +202,8 @@
       console.log('YMM Debug: Found', categorySelects.length, 'category selects');
       
       if (selectionIndex >= categorySelects.length) {
-        console.log('YMM Debug: No select available for index', selectionIndex);
+        console.log('YMM Debug: No select available for index', selectionIndex, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag when no more selects
         return; // No more selects available
       }
       
@@ -176,6 +213,9 @@
       if (option.length > 0) {
         console.log('YMM Debug: Setting select to value:', currentSelection);
         currentSelect.val(currentSelection);
+        
+        // Don't trigger change event during restoration to prevent auto-submit
+        // Instead manually handle the restoration logic
         
         // Check if this category has children and restore them
         if (this.categories[currentSelection] && this.categories[currentSelection].children) {
@@ -187,9 +227,16 @@
           setTimeout(function() {
             widget.applyCategorySelections(savedSelections, selectionIndex + 1);
           }, 10);
+        } else {
+          console.log('YMM Debug: Category has no children, restoration complete, resetting flag');
+          this.isRestoringCategories = false; // Reset flag when complete
         }
+        
+        // Don't save during restoration - only save when user makes changes
       } else {
-        console.log('YMM Debug: Option not found for value:', currentSelection);
+        console.log('YMM Debug: Option not found for value:', currentSelection, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag on error
+        // If the saved option is no longer available, don't continue with subsequent selections
       }
     },  
     garageAdd : function(vehicle){
@@ -265,14 +312,10 @@
       this.disableLevels(firstSelect);
             
       firstSelect[0].length = 1;
-      
-      // Sort first level options using natural sorting
-      var sortedOptions = this.firstLevelOptions.slice(); // Create a copy
-      sortedOptions.sort($.proxy(this.naturalSort, this));
         
-      var l = sortedOptions.length;		  
+      var l = this.firstLevelOptions.length;		  
       for (var i=0;i<l;i++){
-        firstSelect[0].options[i+1] = new Option(sortedOptions[i], sortedOptions[i]);
+        firstSelect[0].options[i+1] = new Option(this.firstLevelOptions[i], this.firstLevelOptions[i]);
       } 
       
       if (this.garageEnabled){          
@@ -331,8 +374,8 @@
         if (selects.length == values.length){// last drop-down is selected 
           if (this.canShowExtra)
             this.showExtra(values);
-          else  
-            this.submit();     
+          else
+            this.submit();
         } else {
           var categoryId = this.filterCategoryPage ? this.categoryId : 0;
           var widget = this;
@@ -346,7 +389,7 @@
               function (data) {
                 if (!data.error){           
                   if (data.length == 0){//there are no values for the next drop-down
-                    widget.submit();
+                    //widget.submit();
                   } else {                
                     widget.enableLevel(element, data, nextLevel);
                   }
@@ -436,7 +479,7 @@
               if (this.rootCategoryIds.length > 0){
                 this.addCategorySelect(this.rootCategoryIds);
                 
-                // Restore previous category selections
+                // Always try to restore previous category selections
                 this.restoreCategorySelections();
                 
                 if (this.wordSearchEnabled){
@@ -557,6 +600,12 @@
 
 
     checkSubCategories : function(e){
+      // Don't process changes during category restoration
+      if (this.isRestoringCategories) {
+        console.log('YMM Debug: Skipping checkSubCategories during restoration');
+        return;
+      }
+      
       var element = $(e.target)
 
       this.removeSubCategories(element);
@@ -566,7 +615,7 @@
         if (this.categories[cId].children){
           this.addCategorySelect(this.categories[cId].children);
         } else {
-          this.submitCategory(cId);
+          //this.submitCategory(cId);
         }
       }
       
@@ -600,7 +649,7 @@
       if (this.rootCategoryIds.length > 0){
         var categoryId = this.getLastSelectedCategory();
         if (categoryId){
-          this.submitCategory(categoryId);
+          //this.submitCategory(categoryId);
           return;
         }
       }        

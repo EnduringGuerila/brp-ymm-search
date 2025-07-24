@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BRP YMM Search
  * Description: Customer can search for parts by vehicle year, make, and model. A fork of ymm-search from Pektsekye
- * Version: 1.0.12.4
+ * Version: 1.0.12.5
  * Author: BRP / Tim Kirtland
  * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     
@@ -82,7 +82,9 @@ final class Pektsekye_Ymm {
     add_action( 'widgets_init', array( $this, 'register_widgets') );    
     add_action( 'admin_menu', array( $this, 'set_admin_menu' ), 70 );
      
-    add_shortcode( 'ymm_selector', array( $this, 'show_selector_by_shortcode' ) );  		     	                 	  
+    add_shortcode( 'ymm_selector', array( $this, 'show_selector_by_shortcode' ) );
+    add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'product_option_js') );
+
   }    
 
 
@@ -214,6 +216,27 @@ final class Pektsekye_Ymm {
     return $contents;
   }    
 
+  public function product_option_js() {
+  
+    include_once($this->getPluginPath() . 'Block/Selector.php');
+          
+    $block = new Pektsekye_Ymm_Block_Selector();    
+    $values = $block->getSelectedValues();
+    
+    if (empty($values)){
+      return ''; 
+    }
+    
+    $vehicle = implode(' ', $values);
+?>
+<script type="text/javascript">
+  var vehicle = '<?php echo str_replace("'", "", strip_tags($vehicle));?>';
+  jQuery('input[type="text"].pofw-option').val(vehicle);
+</script>
+<?php
+
+  }
+  
 
   private function is_request( $type ) {
     switch ( $type ) {
