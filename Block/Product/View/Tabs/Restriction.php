@@ -51,7 +51,7 @@ class Pektsekye_Ymm_Block_Product_View_Tabs_Restriction {
            
       if ($from != 0 || $to != 0){   
         if ($from == 0){
-          $year = '- ' . $to;          
+          $year = $to . ' and below';          
         } elseif ($to == 0){
           $year = $from . ' and above';
         } elseif ($from == $to){

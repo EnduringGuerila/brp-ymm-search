@@ -23,6 +23,9 @@ The plugin can be configured through the WordPress admin panel under the "BRP YM
 
 ## Version History
 
+- 1.0.12.7:
+  - Fixed fitment year display for lower-bound-only ranges (`0,2010` now shows `2010 and Below`)
+  - CSV import/export now supports `product_id` in addition to `product_sku`
 - 1.0.12.6:
   - YoastSEO modification added
   - Category exclusions field added to admin interface
@@ -43,13 +46,11 @@ The plugin can be configured through the WordPress admin panel under the "BRP YM
 - Make Leading Category view 4 columns instead of 3 which is pushing Model dropdown to a new line (horizontal filter)
   - YEAR Dropdown can be much more narrow to save space
 - Garage: hide leading category, only show ymm
-- DB CSV Export and Import use ProductID instead of SKU (since SKUs can be duplicated)
 - Product List page: Quick Edit section doesn't work with Notes field, and will delete all notes if quickedit is used at all.
 - Product List page: YMM Data/(#) Vehicles Column is not sortable
 - Product List page: Quick Edit section needs to be larger horizontally for sure, maybe also vertically
 - Product List page: Quick Edit, get rid of Format/Example section to save space
 - Show More/Less buttons on product fitment tab need improvement
-- "2010 and Below" for ",0,2010" stopped working, just displays as "- 2010"
 
 
 ## New Ideas:

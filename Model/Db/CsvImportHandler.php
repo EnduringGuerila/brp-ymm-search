@@ -49,20 +49,26 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
         throw new Exception(sprintf(__('The file "%s" is empty', 'ymm-search'), $file['name']));
       }
 
-      $fieldNames = $this->_config->getCsvColumnNames(); 
-                     
-      foreach ($rows[0] as $k => $v) {
-        $v = trim($v);
-        if ($v != $fieldNames[$k]){
-          throw new Exception(sprintf(__('The first row in the .csv file must contain correct column names. And the columns should have special order: "%s"', 'ymm-search'), implode('","', $fieldNames)));
-          return;          
-        } 
-      }             
-      
+      $fieldNames = $this->_config->getCsvColumnNames();
+      $legacyFieldNames = array_values(array_diff($fieldNames, array('product_id')));
+
+      $header = array_map('trim', $rows[0]);
+
+      $isNewHeader = count($header) == count($fieldNames) && $header === $fieldNames;
+      $isLegacyHeader = count($header) == count($legacyFieldNames) && $header === $legacyFieldNames;
+
+      if ($isLegacyHeader){
+        $fieldNames = $legacyFieldNames;
+      } elseif (!$isNewHeader){
+        throw new Exception(sprintf(__('The first row in the .csv file must contain correct column names in this order: "%s" (or legacy format: "%s").', 'ymm-search'), implode('","', $this->_config->getCsvColumnNames()), implode('","', $legacyFieldNames)));
+        return;
+      }
+
+      $productIdsById = $this->_db->getProductIdsById();
       $productIdsBySku = $this->_db->getProductIdsBySku();
       
       if ($mode == 'delete_old'){
-        $this->_db->emptyTable($fieldNames);      
+        $this->_db->emptyTable();
       }
       
       
@@ -82,18 +88,32 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
           $d[$v] = isset($row[$k]) ? trim($row[$k]) : '';
         }
         
-        $productSku = $d['product_sku'];
-        if (empty($productSku)){
-          Pektsekye_YMM()->setMessage(sprintf(__('Row #%d was not imported. The "product_sku" field should not be empty.', 'ymm-search'), $rowIndex), 'error_lines');
-          continue;                  
-        }
+        $productId = isset($d['product_id']) ? trim($d['product_id']) : '';
+        $productSku = isset($d['product_sku']) ? trim($d['product_sku']) : '';
+        $resolvedProductId = 0;
 
-        if (!isset($productIdsBySku[$productSku])){
-          Pektsekye_YMM()->setMessage(sprintf(__('Row #%d was not imported. The product with SKU or ID "%s" does not exist.', 'ymm-search'), $rowIndex, $productSku), 'error_lines');
-          continue;          
+        if ($productId !== ''){
+          $normalizedProductId = (string) (int) $productId;
+          if ($normalizedProductId !== '0' && isset($productIdsById[$normalizedProductId])){
+            $resolvedProductId = $productIdsById[$normalizedProductId];
+          } else {
+            Pektsekye_YMM()->setMessage(sprintf(__('Row #%d was not imported. The product with ID "%s" does not exist.', 'ymm-search'), $rowIndex, $productId), 'error_lines');
+            continue;
+          }
+
+        } else {
+          if (empty($productSku)){
+            Pektsekye_YMM()->setMessage(sprintf(__('Row #%d was not imported. Provide "product_id" or "product_sku".', 'ymm-search'), $rowIndex), 'error_lines');
+            continue;
+          }
+
+          if (!isset($productIdsBySku[$productSku])){
+            Pektsekye_YMM()->setMessage(sprintf(__('Row #%d was not imported. The product with SKU "%s" does not exist.', 'ymm-search'), $rowIndex, $productSku), 'error_lines');
+            continue;
+          }
+
+          $resolvedProductId = $productIdsBySku[$productSku];
         }
-      
-        $d['product_sku'] = $productIdsBySku[$productSku]; //save product id instead of product SKU in the database 
                 
         $d['year_from'] = (int) $d['year_from'];
         $d['year_to'] = (int) $d['year_to']; 
@@ -101,20 +121,27 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
         if ($d['year_from'] > 0){
           if ($d['year_from'] < 1950){
             $d['year_from'] = 1950;
-          } elseif ($d['year_from'] > 2030){
-            $d['year_from'] = 2030;
+          } elseif ($d['year_from'] > 2040){
+            $d['year_from'] = 2040;
           }                        
         }
         
         if ($d['year_to'] > 0){
           if ($d['year_to'] < 1950){
             $d['year_to'] = 1950;
-          } elseif ($d['year_to'] > 2030){
-            $d['year_to'] = 2030;
+          } elseif ($d['year_to'] > 2040){
+            $d['year_to'] = 2040;
           }                        
         }   
         
-        $data[] = $d;
+        $data[] = array(
+          $resolvedProductId,
+          $d['make'],
+          $d['model'],
+          $d['year_from'],
+          $d['year_to'],
+          $d['note']
+        );
         
         if ($countRows % 1000 == 0){
           $this->_db->addValues($data);

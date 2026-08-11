@@ -148,15 +148,15 @@ class Pektsekye_Ymm_Model_Db
      public function getSampleVehicleData()     
     {
       $data = array(
-        array("H4184","Daihatsu","Altis","2000","2008","note here"),
-        array("PPF5471","Lexus","ES300","1992","1997",""),
-        array("PPF5471","Lexus","GS300","1997","1999",""),
-        array("PPF5471","Lexus","RX300","1999","2003",""),
-        array("PPF5497","Toyota","Avalon","1999","2003",""),
-        array("PPF5497","Toyota","Caldina","1997","2008",""),
-        array("PPF5493","Toyota","Camry","1993","2000",""),
-        array("PPF5077","Toyota","Carina","1993","1998",""),
-        array("H4061","BMW","X5","2004","2008","")          
+        array("100001","H4184","Daihatsu","Altis","2000","2008","note here"),
+        array("100002","PPF5471","Lexus","ES300","1992","1997",""),
+        array("100002","PPF5471","Lexus","GS300","1997","1999",""),
+        array("100002","PPF5471","Lexus","RX300","1999","2003",""),
+        array("100003","PPF5497","Toyota","Avalon","1999","2003",""),
+        array("100003","PPF5497","Toyota","Caldina","1997","2008",""),
+        array("100004","PPF5493","Toyota","Camry","1993","2000",""),
+        array("100005","PPF5077","Toyota","Carina","1993","1998",""),
+        array("100006","H4061","BMW","X5","2004","2008","")          
       );
       
       $numberOfProducts = 6;
@@ -165,15 +165,15 @@ class Pektsekye_Ymm_Model_Db
       if (count($productIdsBySku) == $numberOfProducts){ // if there are enough products we can use existing product SKUs for sample data
         $productSkus = array_keys($productIdsBySku);
         $data = array(
-          array($productSkus[0],"Daihatsu","Altis","2000","2008","note here"),
-          array($productSkus[1],"Lexus","ES300","1992","1997",""),
-          array($productSkus[1],"Lexus","GS300","1997","1999",""),
-          array($productSkus[1],"Lexus","RX300","1999","2003",""),
-          array($productSkus[2],"Toyota","Avalon","1999","2003",""),
-          array($productSkus[2],"Toyota","Caldina","1997","2008",""),
-          array($productSkus[3],"Toyota","Camry","1993","2000",""),
-          array($productSkus[4],"Toyota","Carina","1993","1998",""),
-          array($productSkus[5],"BMW","X5","2004","2008","")     
+          array($productIdsBySku[$productSkus[0]],$productSkus[0],"Daihatsu","Altis","2000","2008","note here"),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","ES300","1992","1997",""),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","GS300","1997","1999",""),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","RX300","1999","2003",""),
+          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Toyota","Avalon","1999","2003",""),
+          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Toyota","Caldina","1997","2008",""),
+          array($productIdsBySku[$productSkus[3]],$productSkus[3],"Toyota","Camry","1993","2000",""),
+          array($productIdsBySku[$productSkus[4]],$productSkus[4],"Toyota","Carina","1993","1998",""),
+          array($productIdsBySku[$productSkus[5]],$productSkus[5],"BMW","X5","2004","2008","")     
         );
       }
       
@@ -231,8 +231,10 @@ class Pektsekye_Ymm_Model_Db
       $data = array();
       
       $fieldNames = $this->_config->getCsvColumnNames();
-      
-      array_shift($fieldNames);  //we don't need the first product_id field in the restriction
+
+      // Product-level restriction textarea contains only make/model/year/note columns.
+      // CSV headers include product columns that should be ignored here.
+      $fieldNames = array_values(array_diff($fieldNames, array('product_id', 'product_sku')));
           
       $numberOfFields = count($fieldNames);
       
@@ -259,16 +261,16 @@ class Pektsekye_Ymm_Model_Db
         if ($yearFrom > 0){
           if ($yearFrom < 1950){
             $yearFrom = 1950;
-          } elseif ($yearFrom > 2030){
-            $yearFrom = 2030;
+          } elseif ($yearFrom > 2040){
+            $yearFrom = 2040;
           }                        
         }
         
         if ($yearTo > 0){
           if ($yearTo < 1950){
             $yearTo = 1950;
-          } elseif ($yearTo > 2030){
-            $yearTo = 2030;
+          } elseif ($yearTo > 2040){
+            $yearTo = 2040;
           }                        
         }        
                                 
@@ -289,7 +291,7 @@ class Pektsekye_Ymm_Model_Db
       $queryLimit = $limit > 0 ? " LIMIT {$limit} " : '';    
     
       $select = "
-        SELECT DISTINCT IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.make, ymm.model, ymm.year_from, ymm.year_to, ymm.note
+        SELECT DISTINCT posts.ID as product_id, IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.make, ymm.model, ymm.year_from, ymm.year_to, ymm.note
         FROM {$this->_wpdb->posts} AS posts 
 		    LEFT JOIN {$this->_wpdb->postmeta} AS postmeta 
 		      ON postmeta.post_id = posts.ID AND postmeta.meta_key = '_sku' 
@@ -333,7 +335,29 @@ class Pektsekye_Ymm_Model_Db
       }
        
       return $productIds;   
-    }      
+    }
+
+
+    public function getProductIdsById($limit = 0)
+    {
+      $queryLimit = $limit > 0 ? " LIMIT {$limit} " : '';
+
+      $select = "
+        SELECT posts.ID as product_id
+        FROM {$this->_wpdb->posts} AS posts
+		    WHERE posts.post_type = 'product'
+		    {$queryLimit}
+      ";
+      $result = (array) $this->_wpdb->get_col($select);
+
+      $productIds = array();
+      foreach ($result as $productId){
+        $productId = (string) (int) $productId;
+        $productIds[$productId] = (int) $productId;
+      }
+
+      return $productIds;
+    }
       
       
       

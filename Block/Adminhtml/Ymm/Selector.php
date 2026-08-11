@@ -56,7 +56,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector {
   
   public function getDisplaySearchField() 
   {
-    return get_option('ymm_enable_search_field') == 'yes';
+    return get_option('ymm_enable_search_field') == 'no';
   }  
   
   
@@ -66,7 +66,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector {
     $excluded = get_option('ymm_excluded_category_ids', '');
     if (empty($excluded)) {
       // Default to the original hardcoded exclusions if no configuration is set
-      return '48,2266,80';
+      return '48,2266,80,5706,376,5351,2268';
     }
     return $excluded;
   }  
