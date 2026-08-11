@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Pektsekye_Ymm_Config
 {
     
-    protected $_csvColumnNames = array('product_sku', 'make', 'model', 'year_from', 'year_to');
+    protected $_csvColumnNames = array('product_sku', 'make', 'model', 'year_from', 'year_to', 'note');
 
 
     public function getLevels()

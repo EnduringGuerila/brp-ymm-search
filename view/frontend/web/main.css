@@ -71,9 +71,3 @@
 .ymm-selector.ymm-horizontal .ymm-submit-any-selection {margin-top:6px;}
 .ymm-selector.ymm-horizontal .ymm-clear {clear:both;height:1px;}
 
-
-/* Hide only the 'Selected Vehicle' field and its label */
-.pofw-product-options-wrapper .field label[for="select_2"],
-.pofw-product-options-wrapper .field .control input#pofw_option_2 {
-    display: none !important;
-}

@@ -247,7 +247,7 @@
       if (cookie){
         var selectedOld;
         
-      	try {
+        try {
           selectedOld = $.parseJSON(cookie);                        		
         } catch (e){}
         
@@ -396,11 +396,24 @@
                 }  
               }
             );
+            this.showLoadingText(element);   
         }  
       
       }
     
     },
+  
+    showLoadingText : function(element){
+      var select;
+      
+      if (this.isHorizontal)
+        select = $(element).closest('.level').next().find('.ymm-select');
+      else  
+        select = $(element).next('.ymm-select'); 
+           
+      select[0].options[1] = new Option('Loading...', '');
+      select[0].selectedIndex = 1;   
+    },  
   
   
     enableLevel : function(element, options, level){
@@ -615,7 +628,7 @@
         if (this.categories[cId].children){
           this.addCategorySelect(this.categories[cId].children);
         } else {
-          //this.submitCategory(cId);
+          this.submitCategory(cId);
         }
       }
       
@@ -649,7 +662,7 @@
       if (this.rootCategoryIds.length > 0){
         var categoryId = this.getLastSelectedCategory();
         if (categoryId){
-          //this.submitCategory(categoryId);
+          this.submitCategory(categoryId);
           return;
         }
       }        

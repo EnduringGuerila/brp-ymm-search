@@ -39,21 +39,26 @@ class Pektsekye_Ymm_Block_Product_View_Tabs_Restriction {
     $result = $this->_db->getProductRestrictions((int) $product->get_id());
     
     foreach ($result as $k => $r) {
+      
+      if (empty($r['model'])){
+        $result[$k]['model'] = 'All Models';
+      }
+
       $from = (int) $r['year_from'];
       $to = (int) $r['year_to'];
       
-      $year = ''; 
+      $year = 'All Years'; 
            
       if ($from != 0 || $to != 0){   
         if ($from == 0){
-          $year = $to;          
+          $year = '- ' . $to;          
         } elseif ($to == 0){
-          $year = $from;
+          $year = $from . ' and above';
         } elseif ($from == $to){
           $year = $from;
         } elseif ($from < $to){          	
           $year = "{$from} - {$to}";            
-        }     
+        }  
       }
 
       $result[$k]['year'] = $year;
