@@ -23,6 +23,8 @@ The plugin can be configured through the WordPress admin panel under the YMM men
 
 ## Version History
 
+- 1.0.12.2 - Fixed category dropdown memory and added alphabetical sorting
+- 1.0.12.1 - Includes improvements for fitment display, category visibility, and configurable exclusions  
 - 1.0.12 - Current version with year_first modifications
 - Various bug fixes and improvements
 

@@ -5,6 +5,7 @@
     
     rootCategoryIds: [],    
     selectedValues : [],
+    isRestoringCategories: false,
      
      
     _create : function () {
@@ -40,7 +41,10 @@
           this.extraContainer.addClass('or-search');
           this.searchAnySelButton.hide();                  
         }                                             
-        this.extraContainer.show();                 
+        this.extraContainer.show();
+        
+        // Restore category selections after they're added
+        this.restoreCategorySelections();                 
       }                           
     },
   
@@ -96,9 +100,145 @@
           Cookies.set(this.ymmCookieName, JSON.stringify(selected)); 
         }                
       }    
+    },
+    
+    
+    saveCategorySelections : function() {
+      var categorySelections = [];
+      this.element.find('.ymm-category-select').each(function() {
+        var value = $(this).val();
+        // Only save non-empty selections
+        if (value && value !== '') {
+          categorySelections.push(value);
+        }
+      });
+
+      console.log('YMM Debug: Saving category selections:', categorySelections);
+
+      if (categorySelections.length > 0) {
+        var cookie = Cookies.get(this.ymmCookieName);
+        var selected = {categories: categorySelections};
+
+        if (cookie) {
+          try {
+            var selectedOld = $.parseJSON(cookie);
+            if (selectedOld) {
+              selected = selectedOld;
+              selected.categories = categorySelections;
+            }
+          } catch (e) {}
+        }
+
+        Cookies.set(this.ymmCookieName, JSON.stringify(selected));
+        console.log('YMM Debug: Cookie saved:', JSON.stringify(selected));
+      } else {
+        // If no categories are selected, remove categories from cookie but preserve vehicle data
+        var cookie = Cookies.get(this.ymmCookieName);
+        if (cookie) {
+          try {
+            var selected = $.parseJSON(cookie);
+            if (selected) {
+              delete selected.categories; // Remove categories key
+              Cookies.set(this.ymmCookieName, JSON.stringify(selected));
+              console.log('YMM Debug: Removed empty categories from cookie');
+            }
+          } catch (e) {}
+        }
+      }
+    },
+    
+    
+    restoreCategorySelections : function() {
+      if (this.isRestoringCategories) {
+        console.log('YMM Debug: Already restoring categories, skipping...');
+        return;
+      }
+      
+      var cookie = Cookies.get(this.ymmCookieName);
+      console.log('YMM Debug: Restoring categories, cookie value:', cookie);
+
+      if (cookie) {
+        try {
+          var selected = $.parseJSON(cookie);
+          console.log('YMM Debug: Parsed cookie data:', selected);
+          if (selected && selected.categories && selected.categories.length > 0) {
+            // Filter out empty values from saved categories
+            var validCategories = selected.categories.filter(function(cat) {
+              return cat && cat !== '';
+            });
+            
+            if (validCategories.length > 0) {
+              console.log('YMM Debug: Applying category selections:', validCategories);
+              this.isRestoringCategories = true;
+              this.applyCategorySelections(validCategories, 0);
+            }
+          }
+        } catch (e) {
+          console.log('YMM Debug: Error parsing cookie:', e);
+        }
+      }
+    },
+    
+    
+    applyCategorySelections : function(savedSelections, selectionIndex) {
+      var widget = this;
+      
+      console.log('YMM Debug: Applying selection at index', selectionIndex, 'value:', savedSelections[selectionIndex]);
+      
+      if (selectionIndex >= savedSelections.length) {
+        console.log('YMM Debug: No more selections to restore, resetting flag');
+        this.isRestoringCategories = false; // Reset flag when done
+        return; // No more selections to restore
+      }
+      
+      var currentSelection = savedSelections[selectionIndex];
+      if (!currentSelection || currentSelection === '') {
+        console.log('YMM Debug: Empty selection at index', selectionIndex, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag on empty selection
+        return; // Nothing to restore at this level
+      }
+      
+      var categorySelects = this.element.find('.ymm-category-select');
+      console.log('YMM Debug: Found', categorySelects.length, 'category selects');
+      
+      if (selectionIndex >= categorySelects.length) {
+        console.log('YMM Debug: No select available for index', selectionIndex, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag when no more selects
+        return; // No more selects available
+      }
+      
+      var currentSelect = $(categorySelects[selectionIndex]);
+      var option = currentSelect.find('option[value="' + currentSelection + '"]');
+      
+      if (option.length > 0) {
+        console.log('YMM Debug: Setting select to value:', currentSelection);
+        currentSelect.val(currentSelection);
+        
+        // Don't trigger change event during restoration to prevent auto-submit
+        // Instead manually handle the restoration logic
+        
+        // Check if this category has children and restore them
+        if (this.categories[currentSelection] && this.categories[currentSelection].children) {
+          console.log('YMM Debug: Category has children, adding subcategory select');
+          // Add the subcategory select
+          this.addCategorySelect(this.categories[currentSelection].children);
+
+          // Restore the next level after a short delay to ensure the select is added
+          setTimeout(function() {
+            widget.applyCategorySelections(savedSelections, selectionIndex + 1);
+          }, 10);
+        } else {
+          console.log('YMM Debug: Category has no children, restoration complete, resetting flag');
+          this.isRestoringCategories = false; // Reset flag when complete
+        }
+        
+        // Don't save during restoration - only save when user makes changes
+      } else {
+        console.log('YMM Debug: Option not found for value:', currentSelection, ', resetting flag');
+        this.isRestoringCategories = false; // Reset flag on error
+        // If the saved option is no longer available, don't continue with subsequent selections
+      }
     },  
-  
-  
     garageAdd : function(vehicle){
     
       var selected = {vehicle:vehicle, vehicles:[vehicle]};
@@ -120,6 +260,11 @@
             selected.vehicles.push(vehicle);
             selected.vehicles.sort($.proxy(this.sortCaseIns, this));
           }
+        }
+        
+        // Preserve existing categories when adding vehicle
+        if (selectedOld && selectedOld.categories) {
+          selected.categories = selectedOld.categories;
         }           
       }    
       
@@ -229,8 +374,8 @@
         if (selects.length == values.length){// last drop-down is selected 
           if (this.canShowExtra)
             this.showExtra(values);
-          else  
-            this.submit();     
+          else
+            this.submit();
         } else {
           var categoryId = this.filterCategoryPage ? this.categoryId : 0;
           var widget = this;
@@ -244,7 +389,7 @@
               function (data) {
                 if (!data.error){           
                   if (data.length == 0){//there are no values for the next drop-down
-                    widget.submit();
+                    //widget.submit();
                   } else {                
                     widget.enableLevel(element, data, nextLevel);
                   }
@@ -264,6 +409,9 @@
         var select = $(element).closest('.level').next().find('.ymm-select');
       else  
         var select = $(element).next('.ymm-select');
+
+      // Sort options using natural sorting for better model ordering
+      options.sort($.proxy(this.naturalSort, this));
     
       var l = options.length;		  
       for (var i=0;i<l;i++)
@@ -330,6 +478,10 @@
             jqxhr.always($.proxy(function(){           
               if (this.rootCategoryIds.length > 0){
                 this.addCategorySelect(this.rootCategoryIds);
+                
+                // Always try to restore previous category selections
+                this.restoreCategorySelections();
+                
                 if (this.wordSearchEnabled){
                   this.extraContainer.addClass('or-search');                  
                 }                  
@@ -423,17 +575,37 @@
       
       select[0].options[0] = new Option(this.categoryDefOptionTitle, '');
       
-      var cId;  
+      // Create an array of category objects for sorting
+      var categoryOptions = [];
       var l = categoryIds.length;		  
       for (var i=0;i<l;i++){
-        cId = categoryIds[i];
-        select[0].options[i+1] = new Option(this.categories[cId].title, cId);
+        var cId = categoryIds[i];
+        categoryOptions.push({
+          id: cId,
+          title: this.categories[cId].title
+        });
+      }
+      
+      // Sort categories alphabetically by title
+      categoryOptions.sort(function(a, b) {
+        return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+      });
+      
+      // Add sorted options to the select
+      for (var i=0;i<categoryOptions.length;i++){
+        select[0].options[i+1] = new Option(categoryOptions[i].title, categoryOptions[i].id);
       }    
     
     },
 
 
     checkSubCategories : function(e){
+      // Don't process changes during category restoration
+      if (this.isRestoringCategories) {
+        console.log('YMM Debug: Skipping checkSubCategories during restoration');
+        return;
+      }
+      
       var element = $(e.target)
 
       this.removeSubCategories(element);
@@ -443,9 +615,12 @@
         if (this.categories[cId].children){
           this.addCategorySelect(this.categories[cId].children);
         } else {
-          this.submitCategory(cId);
+          //this.submitCategory(cId);
         }
-      }        
+      }
+      
+      // Save category selections when they change
+      this.saveCategorySelections();
     },  
       
       
@@ -474,7 +649,7 @@
       if (this.rootCategoryIds.length > 0){
         var categoryId = this.getLastSelectedCategory();
         if (categoryId){
-          this.submitCategory(categoryId);
+          //this.submitCategory(categoryId);
           return;
         }
       }        
@@ -593,6 +768,51 @@
       b = b.toLowerCase();
       if (a == b) return 0;
       if (a > b) return 1;
+    },
+    
+    
+    naturalSort : function(a, b) {
+      // Parse model strings like "CRF 450R", "TC 65", "85 SX", "150 XC-W", "1090 Adv", "1290 Super Adv"
+      var parseModel = function(model) {
+        // Remove extra spaces and normalize
+        var normalized = model.trim().replace(/\s+/g, ' ');
+        
+        // Try to match: [letters] [number] [suffix] or [number] [suffix]
+        var match = normalized.match(/^([A-Za-z]*)\s*(\d{1,4})\s*(.*)$/);
+        
+        if (match) {
+          return {
+            prefix: (match[1] || '').toLowerCase(),
+            number: parseInt(match[2], 10),
+            suffix: (match[3] || '').toLowerCase(),
+            original: model
+          };
+        }
+        
+        // Fallback: treat entire string as prefix if no number found
+        return {
+          prefix: normalized.toLowerCase(),
+          number: 0,
+          suffix: '',
+          original: model
+        };
+      };
+      
+      var parsedA = parseModel(a);
+      var parsedB = parseModel(b);
+      
+      // First sort by prefix (alphabetically)
+      if (parsedA.prefix !== parsedB.prefix) {
+        return parsedA.prefix.localeCompare(parsedB.prefix);
+      }
+      
+      // Then sort by number (numerically)
+      if (parsedA.number !== parsedB.number) {
+        return parsedA.number - parsedB.number;
+      }
+      
+      // Finally sort by suffix (alphabetically)
+      return parsedA.suffix.localeCompare(parsedB.suffix);
     }	                  
     
             

@@ -366,6 +366,32 @@ class Pektsekye_Ymm_Model_Db
     public function emptyTable()
     {      
       $this->_wpdb->query("TRUNCATE TABLE {$this->_mainTable}"); 
+    }
+    
+    public function getYmmDataByProductId($product_id)
+    {
+        $product_id = (int) $product_id;
+        $sql = "SELECT make, model, year_from, year_to FROM {$this->_mainTable} WHERE product_id = %d ORDER BY make, model, year_from";
+        return $this->_wpdb->get_results($this->_wpdb->prepare($sql, $product_id), ARRAY_A);
+    }
+    
+    public function deleteYmmDataByProductId($product_id)
+    {
+        $product_id = (int) $product_id;
+        $this->_wpdb->delete($this->_mainTable, array('product_id' => $product_id), array('%d'));
+    }
+    
+    public function insertYmmData($product_id, $make, $model, $year_from, $year_to)
+    {
+        $data = array(
+            'product_id' => (int) $product_id,
+            'make' => sanitize_text_field($make),
+            'model' => sanitize_text_field($model),
+            'year_from' => (int) $year_from,
+            'year_to' => (int) $year_to
+        );
+        
+        $this->_wpdb->insert($this->_mainTable, $data, array('%d', '%s', '%s', '%d', '%d'));
     }	
        
 }

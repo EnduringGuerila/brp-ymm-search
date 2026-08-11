@@ -1,0 +1,16 @@
+/* YMM Quick Edit Styles */
+.ymm-data-field {
+    width: 300px;
+    height: 80px;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.ymm-count {
+    color: #666;
+    font-size: 11px;
+}
+
+.column-ymm_data {
+    width: 10%;
+}
