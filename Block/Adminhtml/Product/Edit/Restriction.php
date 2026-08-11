@@ -24,7 +24,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction {
 
   public function getFormatExplanationMessage() 
   {
-    return __('Correct format is four columns in a row (three commas). Then a new line. Example:<br> Daihatsu, Altis, 1990, 2005<br>Toyota, Caldina, 1997, 2008 <br>Toyota, Camry, 1993, 2000<br><br>All models of one make:<br>Daihatsu, , 0, 0<br><br>All makes and models:<br> , , 0, 0', 'ymm-search');
+    return __('Correct format is five columns in a row (four commas). Then a new line. Example:<br> KTM, 450 SX-F, 1990, 2005, note here<br>Honda, XR 650R, 1997, 2007, <br>GasGas, MC 350F, 2021, 2024,<br><br>All models of one make:<br>KTM, , 0, 0,', 'ymm-search');
   }
   
 
@@ -89,20 +89,20 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction {
           <br/>
           <button type="button" class="button ymm-add-button" disabled="disabled"><?php echo __('Add to restriction', 'ymm-search') ?></button>			     
         </p>
-      </div>       
+      </div>    
       <script type='text/javascript'>
         jQuery('#ymm_restriction').change(function(){jQuery('#ymm_restriction_changed').val(1)});
         jQuery('#ymm_sample').click(function(){
           var sample =
-            "Daihatsu,Altis,2000,2008 \r\n"+
-            "Lexus,ES300,1992,1997 \r\n"+
-            "Lexus,GS300,1997,1999 \r\n"+
-            "Lexus,RX300,1999,2003 \r\n"+
-            "Toyota,Avalon,1999,2003 \r\n"+
-            "Toyota,Caldina,1997,2008 \r\n"+
-            "Toyota,Camry,1993,2000 \r\n"+
-            "Toyota,Carina,1993,1998 \r\n"+
-            "BMW,X5,2004,2008 \r\n";       
+            "Daihatsu,Altis,2000,2008,note here \r\n"+
+            "Lexus,ES300,1992,1997, \r\n"+
+            "Lexus,GS300,1997,1999, \r\n"+
+            "Lexus,RX300,1999,2003, \r\n"+
+            "Toyota,Avalon,1999,2003, \r\n"+
+            "Toyota,Caldina,1997,2008, \r\n"+
+            "Toyota,Camry,1993,2000, \r\n"+
+            "Toyota,Carina,1993,1998, \r\n"+
+            "BMW,X5,2004,2008, \r\n";       
           jQuery('#ymm_restriction').val(sample).change();
           return false;
         });

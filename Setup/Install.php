@@ -53,6 +53,7 @@ CREATE TABLE {$wpdb->base_prefix}ymm (
   model varchar(100) NOT NULL,
   year_from int(4) unsigned NOT NULL default 0,
   year_to int(4) unsigned NOT NULL default 0,
+  note varchar(255) NOT NULL,  
   PRIMARY KEY (id),
   UNIQUE KEY uk_ymm_product_id (product_id, make, model, year_from, year_to) 
 ) ENGINE=MyISAM DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;

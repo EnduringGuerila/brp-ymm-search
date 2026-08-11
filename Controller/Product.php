@@ -21,6 +21,8 @@ class Pektsekye_Ymm_Controller_Product {
     include_once( Pektsekye_YMM()->getPluginPath() . 'etc/config.php');		
 		$this->_config = new Pektsekye_Ymm_Config();
 			 
+		add_action('woocommerce_single_product_summary', array($this, 'add_product_is_applicable_text'), 6);
+    
     add_filter('single_term_title', array($this, 'add_selected_vehicle_to_category_title'));    		    	
     add_filter('woocommerce_layered_nav_link', array($this, 'add_selected_params_to_layered_nav_link'));
     add_filter('woocommerce_get_filtered_term_product_counts_query', array($this, 'add_found_product_ids_to_product_counts_query'));		  		  		
@@ -113,6 +115,29 @@ class Pektsekye_Ymm_Controller_Product {
     return $label;		
   }  
 	  	  
+  public function add_product_is_applicable_text() {
+    global $product;
+    
+    include_once(Pektsekye_YMM()->getPluginPath() . 'Block/Selector.php');        
+    $block = new Pektsekye_Ymm_Block_Selector();
+    
+    $vehicle = $block->getGarageVehicle();
+    
+    if (!empty($vehicle)){
+      $values = explode(',', $vehicle);
+                     
+      $pIds = $this->_db->getProductIds($values); 
+                   
+      $vehicleText = implode(' ', $values);
+      $id = (int) $product->get_id();
+      if (count($pIds) > 0 && in_array($id, $pIds)){
+  	    echo '<div>' . __('This product is compatible with', 'ymm') . ' ' . esc_html($vehicleText) . '</div>';
+  	  } else {
+  	    echo '<div>' . __('This product is NOT compatible with', 'ymm') . ' ' . esc_html($vehicleText) . '</div>';  	  
+  	  }
+  	}  
+  }
+  
 	  	  
   public function add_selected_vehicle_to_category_title($title) {
   	if (!is_product_category()){

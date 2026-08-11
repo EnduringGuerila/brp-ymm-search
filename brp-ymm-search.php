@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BRP YMM Search
  * Description: Customer can search for parts by vehicle year, make, and model. A fork of ymm-search from Pektsekye
- * Version: 1.0.12.5
+ * Version: 1.0.12.6
  * Author: BRP / Tim Kirtland
  * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     
@@ -83,9 +83,98 @@ final class Pektsekye_Ymm {
     add_action( 'admin_menu', array( $this, 'set_admin_menu' ), 70 );
      
     add_shortcode( 'ymm_selector', array( $this, 'show_selector_by_shortcode' ) );
-    add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'product_option_js') );
 
-  }    
+    add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'product_option_js') ); // For Product Options for WooCommerce plugin to show Selected Vehicle in cart and order
+
+    
+    add_action('init', array( $this, 'ex_register_my_new_sitemap'), 99 );           
+    add_filter('wpseo_sitemap_index', array( $this, 'ex_add_sitemap_custom_items'));
+    add_action("wpseo_do_sitemap_ymm", array( $this, 'ex_generate_origin_combo_sitemap'));    
+    add_filter( 'wpseo_enable_xml_sitemap_transient_caching', '__return_false'); //disable caching for testing      
+
+  }
+
+
+  function ex_register_my_new_sitemap() {
+    global $wpseo_sitemaps;
+    if ($wpseo_sitemaps){
+      $wpseo_sitemaps->register_sitemap('ymm', array( $this, 'ex_generate_origin_combo_sitemap') );
+    }
+  }
+
+  
+  function ex_add_sitemap_custom_items(){
+    global $wpseo_sitemaps;
+    $date = date('c', time()); //current date
+    $smp ='';
+        $smp .= '<sitemap>' . "\n";
+    $smp .= '<loc>' . site_url() .'/ymm-sitemap.xml</loc>' . "\n";
+    $smp .= '<lastmod>' . htmlspecialchars( $date ) . '</lastmod>' . "\n";
+    $smp .= '</sitemap>' . "\n";
+    return $smp;
+  }
+  
+  
+  function ex_generate_origin_combo_sitemap(){
+    global $wpseo_sitemaps;    
+       
+    $urls = array();    
+    
+    include_once( Pektsekye_YMM()->getPluginPath() . 'Model/Db.php');		
+    $db =  new Pektsekye_Ymm_Model_Db();
+          
+    foreach ($db->getAllProductRestrictions() as $k => $r) {
+      $make = $r['make'];
+      $model = $r['model'];      
+      $from = (int) $r['year_from'];
+      $to = (int) $r['year_to'];
+    
+      $years = array(); 
+         
+      if ($from != 0 || $to != 0){   
+        if ($from == 0){
+          $years[] = $to;          
+        } elseif ($to == 0 || $from == $to){
+          $years[] = $from;
+        } elseif ($from < $to){          	
+          $years = range($from, $to);            
+        }     
+      }
+      
+      if (count($years) == 0){
+        $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_make='.$make.'&_model='.$model;
+      } else {
+        foreach ($years as $year) {
+          $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_make='.$make.'&_model='.$model.'&_year='.$year;        
+        }
+      }
+    }    
+
+    $output = '';    
+   
+    foreach($urls as $url){
+      $p = array();
+      $p['mod'] = date('c', time());//current date
+      $p['loc'] = $url;
+      $p['chf'] = 'weekly';//possible values always, hourly, daily, weekly, monthly, yearly, never
+      $p['pri'] = 1.0;//possible values 0, 0.1, 0.2, 0.3 ... 1
+      $output .= $wpseo_sitemaps->renderer->sitemap_url($p);      
+      
+    }	
+    
+    if (empty($output)) {
+      $wpseo_sitemaps->bad_sitemap = true;
+      return;
+    }
+    //Build the full sitemap
+    $sitemap = '<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ';
+    $sitemap .= 'xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" ';
+    $sitemap .= 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    $sitemap .= $output . '</urlset>';
+    //echo $sitemap;
+    $wpseo_sitemaps->set_sitemap($sitemap);    
+    
+  }  
 
 
   private function init_controllers() {

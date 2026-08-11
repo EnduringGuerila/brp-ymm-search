@@ -138,7 +138,7 @@ class Pektsekye_Ymm_Model_Db
         $where .= ($where != '' ? ' AND ' : '') . "({$w})";          
       }
   
-      $select = "SELECT DISTINCT CONCAT_WS(', ', make, model, year_from, year_to) as restriction  FROM {$this->_mainTable} WHERE {$where} ORDER BY make, model, year_from, year_to LIMIT 64;";
+      $select = "SELECT DISTINCT CONCAT_WS(', ', make, model, year_from, year_to, note) as restriction  FROM {$this->_mainTable} WHERE {$where} ORDER BY make, model, year_from, year_to LIMIT 64;";
 
       return (array) $this->_wpdb->get_col($select);         
     }
@@ -148,15 +148,15 @@ class Pektsekye_Ymm_Model_Db
      public function getSampleVehicleData()     
     {
       $data = array(
-        array("H4184","Daihatsu","Altis","2000","2008"),
-        array("PPF5471","Lexus","ES300","1992","1997"),
-        array("PPF5471","Lexus","GS300","1997","1999"),
-        array("PPF5471","Lexus","RX300","1999","2003"),
-        array("PPF5497","Toyota","Avalon","1999","2003"),
-        array("PPF5497","Toyota","Caldina","1997","2008"),
-        array("PPF5493","Toyota","Camry","1993","2000"),
-        array("PPF5077","Toyota","Carina","1993","1998"),
-        array("H4061","BMW","X5","2004","2008")      
+        array("H4184","Daihatsu","Altis","2000","2008","note here"),
+        array("PPF5471","Lexus","ES300","1992","1997",""),
+        array("PPF5471","Lexus","GS300","1997","1999",""),
+        array("PPF5471","Lexus","RX300","1999","2003",""),
+        array("PPF5497","Toyota","Avalon","1999","2003",""),
+        array("PPF5497","Toyota","Caldina","1997","2008",""),
+        array("PPF5493","Toyota","Camry","1993","2000",""),
+        array("PPF5077","Toyota","Carina","1993","1998",""),
+        array("H4061","BMW","X5","2004","2008","")          
       );
       
       $numberOfProducts = 6;
@@ -165,15 +165,15 @@ class Pektsekye_Ymm_Model_Db
       if (count($productIdsBySku) == $numberOfProducts){ // if there are enough products we can use existing product SKUs for sample data
         $productSkus = array_keys($productIdsBySku);
         $data = array(
-          array($productSkus[0],"Daihatsu","Altis","2000","2008"),
-          array($productSkus[1],"Lexus","ES300","1992","1997"),
-          array($productSkus[1],"Lexus","GS300","1997","1999"),
-          array($productSkus[1],"Lexus","RX300","1999","2003"),
-          array($productSkus[2],"Toyota","Avalon","1999","2003"),
-          array($productSkus[2],"Toyota","Caldina","1997","2008"),
-          array($productSkus[3],"Toyota","Camry","1993","2000"),
-          array($productSkus[4],"Toyota","Carina","1993","1998"),
-          array($productSkus[5],"BMW","X5","2004","2008")      
+          array($productSkus[0],"Daihatsu","Altis","2000","2008","note here"),
+          array($productSkus[1],"Lexus","ES300","1992","1997",""),
+          array($productSkus[1],"Lexus","GS300","1997","1999",""),
+          array($productSkus[1],"Lexus","RX300","1999","2003",""),
+          array($productSkus[2],"Toyota","Avalon","1999","2003",""),
+          array($productSkus[2],"Toyota","Caldina","1997","2008",""),
+          array($productSkus[3],"Toyota","Camry","1993","2000",""),
+          array($productSkus[4],"Toyota","Carina","1993","1998",""),
+          array($productSkus[5],"BMW","X5","2004","2008","")     
         );
       }
       
@@ -186,7 +186,7 @@ class Pektsekye_Ymm_Model_Db
       $productId = (int) $productId;    
          
       $select = "
-        SELECT make, model, year_from, year_to  
+        SELECT make, model, year_from, year_to, note  
         FROM {$this->_mainTable} 
 		    WHERE product_id = {$productId} 
 		    ORDER BY make 	            
@@ -196,6 +196,17 @@ class Pektsekye_Ymm_Model_Db
     }
     
     
+     public function getAllProductRestrictions()     
+    {
+      $select = "
+        SELECT DISTINCT make, model, year_from, year_to  
+        FROM {$this->_mainTable} 
+		    ORDER BY make 	            
+      ";
+      
+      return (array) $this->_wpdb->get_results($select, ARRAY_A);         
+    }
+       
           
      public function getProductRestrictionText($productId)     
     {          
@@ -203,7 +214,7 @@ class Pektsekye_Ymm_Model_Db
     
       $result = $this->getProductRestrictions($productId);     
       foreach ($result as $row){
-        $text .= "{$row['make']}, {$row['model']}, {$row['year_from']}, {$row['year_to']}\n";
+        $text .= "{$row['make']}, {$row['model']}, {$row['year_from']}, {$row['year_to']}, {$row['note']}\n";
       }
       
       return $text;     
@@ -243,6 +254,7 @@ class Pektsekye_Ymm_Model_Db
         $model = trim($values[1]);
         $yearFrom = (int) $values[2];
         $yearTo = (int) $values[3];
+        $note = $values[4];   
                
         if ($yearFrom > 0){
           if ($yearFrom < 1950){
@@ -260,7 +272,7 @@ class Pektsekye_Ymm_Model_Db
           }                        
         }        
                                 
-        $data[] = array($productId, $make, $model, $yearFrom, $yearTo);        
+        $data[] = array($productId, $make, $model, $yearFrom, $yearTo, $note);      
       }
       
       $this->_wpdb->query("DELETE FROM {$this->_mainTable} WHERE product_id = {$productId}"); 
@@ -277,7 +289,7 @@ class Pektsekye_Ymm_Model_Db
       $queryLimit = $limit > 0 ? " LIMIT {$limit} " : '';    
     
       $select = "
-        SELECT DISTINCT IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.make, ymm.model, ymm.year_from, ymm.year_to  
+        SELECT DISTINCT IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.make, ymm.model, ymm.year_from, ymm.year_to, ymm.note
         FROM {$this->_wpdb->posts} AS posts 
 		    LEFT JOIN {$this->_wpdb->postmeta} AS postmeta 
 		      ON postmeta.post_id = posts.ID AND postmeta.meta_key = '_sku' 

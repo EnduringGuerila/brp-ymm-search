@@ -9,12 +9,14 @@ if ( ! defined( 'ABSPATH' ) ) {
       <th> <?php echo __('Make', 'ymm-search') ?> </th>
       <th> <?php echo __('Model', 'ymm-search') ?> </th>
       <th> <?php echo __('Year', 'ymm-search') ?> </th>
+      <th> <?php echo __('Notes', 'ymm-search') ?> </th>      
     </tr>
   <?php foreach($this->getFormatedRestrictions() as $row): ?>
     <tr>
       <td> <?php echo $row['make'] ?> </td>
       <td> <?php echo $row['model'] ?> </td>
       <td> <?php echo $row['year'] ?> </td>
+      <td> <?php echo $row['note'] ?> </td>      
     </tr>
   <?php endforeach; ?>
   </table>       			          		      	          		      	      
