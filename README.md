@@ -24,6 +24,7 @@ The plugin can be configured through the WordPress admin panel under the "BRP YM
 ## Version History
 
 - 1.0.12.6:
+  - YoastSEO modification added
   - Category exclusions field added to admin interface
   - added product list backend page YMM Data column (X) Vehicles
   - added quick-edit box that allows viewing/editing of ymm data
