@@ -36,41 +36,48 @@ if ($_GET['action'] == 'ymm_selector_fetch'){
   $nextlevel = count($values);
   
   if ($nextlevel == 0){
-    $select = "SELECT DISTINCT year_from, year_to FROM {$wpdb->prefix}ymm WHERE year_from != 0 OR year_to != 0 {$whereProducts}";      
+    $select = "SELECT DISTINCT category FROM {$wpdb->prefix}ymm WHERE category != '' {$whereProducts} ORDER BY category";
+    $values = (array) $wpdb->get_col($select);
+  
+  } else if ($nextlevel == 1){
+    $category = esc_sql($values[0]);
+    $select = "SELECT DISTINCT year_from, year_to FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND (year_from != 0 OR year_to != 0) {$whereProducts}";
     $rows = (array) $wpdb->get_results($select, ARRAY_A);
 
     $y = array();
-    
+
     foreach ($rows as $r) {
 
       $from = (int) $r['year_from'];
-      $to = (int) $r['year_to'];	
+      $to = (int) $r['year_to'];
 
       if ($from == 0){
-        $y[$to] = 1;          
+        $y[$to] = 1;
       } elseif ($to == 0){
         $y[$from] = 1;
       } elseif ($from == $to){
         $y[$from] = 1;
-      } elseif ($from < $to){          	
+      } elseif ($from < $to){
         while ($from <= $to){
           $y[$from] = 1;
           $from++;
-        }            
+        }
       }
-    } 
+    }
 
     krsort($y);
-              
-    $values = array_keys($y);      
-  
-  } else if ($nextlevel == 1){
-    $year = (int) $values[0];
-    $select = "SELECT DISTINCT make FROM {$wpdb->prefix}ymm WHERE year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
-    $values = (array) $wpdb->get_col($select);      
+    $values = array_keys($y);
+
+  } else if ($nextlevel == 2){
+    $category = esc_sql($values[0]);
+    $year = (int) $values[1];
+    $select = "SELECT DISTINCT make FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
+    $values = (array) $wpdb->get_col($select);
   } else {
-    $year = (int) $values[0];      
-    $select = "SELECT DISTINCT model FROM {$wpdb->prefix}ymm WHERE year_from <= {$year} AND year_to >= {$year} AND make = '".esc_sql($values[1])."' AND model != '' {$whereProducts} ORDER BY model";
+    $category = esc_sql($values[0]);
+    $year = (int) $values[1];
+    $make = esc_sql($values[2]);
+    $select = "SELECT DISTINCT model FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make = '{$make}' AND model != '' {$whereProducts} ORDER BY model";
     $values = (array) $wpdb->get_col($select);
   }
   
@@ -80,7 +87,7 @@ exit;
 
 } elseif ($_GET['action'] == 'ymm_selector_get_categories'){
 
-  if (count($values) < 3){
+  if (count($values) < 4){
     echo '{}'; 
     exit;     
   }
@@ -119,8 +126,11 @@ exit;
      )
   );
 
-  $year = (int) $values[0];
-  $select = "SELECT DISTINCT product_id FROM {$wpdb->prefix}ymm WHERE (make = '".esc_sql($values[1])."' or make = '') AND (model = '".esc_sql($values[2])."' or model = '') AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) ";
+  $category = esc_sql($values[0]);
+  $year = (int) $values[1];
+  $make = esc_sql($values[2]);
+  $model = esc_sql($values[3]);
+  $select = "SELECT DISTINCT product_id FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND (make = '{$make}' or make = '') AND (model = '{$model}' or model = '') AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) ";
 
   $pIds = (array) $wpdb->get_col($select);
   

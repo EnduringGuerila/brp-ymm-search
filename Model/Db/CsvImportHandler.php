@@ -49,18 +49,35 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
         throw new Exception(sprintf(__('The file "%s" is empty', 'ymm-search'), $file['name']));
       }
 
+      $normalizeHeaderField = function ($value) {
+        $value = (string) $value;
+        // Remove UTF-8 BOM if present in the first column name.
+        $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
+        $value = trim($value);
+        $value = trim($value, "\"' ");
+        return strtolower($value);
+      };
+
       $fieldNames = $this->_config->getCsvColumnNames();
       $legacyFieldNames = array_values(array_diff($fieldNames, array('product_id')));
+      $legacyNoCategory = array_values(array_diff($fieldNames, array('category')));
+      $legacySkuOnly = array_values(array_diff($fieldNames, array('product_id', 'category')));
 
-      $header = array_map('trim', $rows[0]);
+      $header = array_map($normalizeHeaderField, $rows[0]);
 
-      $isNewHeader = count($header) == count($fieldNames) && $header === $fieldNames;
-      $isLegacyHeader = count($header) == count($legacyFieldNames) && $header === $legacyFieldNames;
+      $isNewHeader = count($header) == count($fieldNames) && $header === array_map($normalizeHeaderField, $fieldNames);
+      $isLegacyHeader = count($header) == count($legacyFieldNames) && $header === array_map($normalizeHeaderField, $legacyFieldNames);
+      $isLegacyNoCategory = count($header) == count($legacyNoCategory) && $header === array_map($normalizeHeaderField, $legacyNoCategory);
+      $isLegacySkuOnly = count($header) == count($legacySkuOnly) && $header === array_map($normalizeHeaderField, $legacySkuOnly);
 
       if ($isLegacyHeader){
         $fieldNames = $legacyFieldNames;
+      } elseif ($isLegacyNoCategory){
+        $fieldNames = $legacyNoCategory;
+      } elseif ($isLegacySkuOnly){
+        $fieldNames = $legacySkuOnly;
       } elseif (!$isNewHeader){
-        throw new Exception(sprintf(__('The first row in the .csv file must contain correct column names in this order: "%s" (or legacy format: "%s").', 'ymm-search'), implode('","', $this->_config->getCsvColumnNames()), implode('","', $legacyFieldNames)));
+        throw new Exception(sprintf(__('The first row in the .csv file must contain correct column names in this order: "%s".', 'ymm-search'), implode('","', $this->_config->getCsvColumnNames())));
         return;
       }
 
@@ -73,6 +90,7 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
       
       
       $data = array();
+      $missingCategoryCount = 0;
       
       $countRows = 0;    
       foreach ($rows as $rowIndex => $row) {
@@ -90,7 +108,13 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
         
         $productId = isset($d['product_id']) ? trim($d['product_id']) : '';
         $productSku = isset($d['product_sku']) ? trim($d['product_sku']) : '';
+        $category = isset($d['category']) ? trim($d['category']) : '';
         $resolvedProductId = 0;
+
+        if ($category === ''){
+          $category = 'Needs Cat';
+          $missingCategoryCount++;
+        }
 
         if ($productId !== ''){
           $normalizedProductId = (string) (int) $productId;
@@ -136,6 +160,7 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
         
         $data[] = array(
           $resolvedProductId,
+          $category,
           $d['make'],
           $d['model'],
           $d['year_from'],
@@ -153,6 +178,8 @@ class Pektsekye_Ymm_Model_Db_CsvImportHandler
          
       if (count($data) > 0)
         $this->_db->addValues($data);
+
+      return $missingCategoryCount;
  
                        
     }

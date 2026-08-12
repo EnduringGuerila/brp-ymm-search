@@ -7,15 +7,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Pektsekye_Ymm_Config
 {
     
-  protected $_csvColumnNames = array('product_id', 'product_sku', 'make', 'model', 'year_from', 'year_to', 'note');
+  protected $_csvColumnNames = array('product_id', 'product_sku', 'category', 'make', 'model', 'year_from', 'year_to', 'note');
 
 
     public function getLevels()
     {
       return array(
-        array('level' => 0, 'url_parameter' => '_year', 'option_title' => __('-- Year --', 'ymm-search')),      
-        array('level' => 1, 'url_parameter' => '_make', 'option_title' => __('-- Make --', 'ymm-search')),
-        array('level' => 2, 'url_parameter' => '_model', 'option_title' => __('-- Model --', 'ymm-search'))       
+        array('level' => 0, 'url_parameter' => '_category', 'option_title' => __('-- Category --', 'ymm-search')),
+        array('level' => 1, 'url_parameter' => '_year', 'option_title' => __('-- Year --', 'ymm-search')),
+        array('level' => 2, 'url_parameter' => '_make', 'option_title' => __('-- Make --', 'ymm-search')),
+        array('level' => 3, 'url_parameter' => '_model', 'option_title' => __('-- Model --', 'ymm-search'))
       );     
     }
 

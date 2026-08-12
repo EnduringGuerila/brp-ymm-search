@@ -39,6 +39,10 @@ class Pektsekye_Ymm_Block_Product_View_Tabs_Restriction {
     $result = $this->_db->getProductRestrictions((int) $product->get_id());
     
     foreach ($result as $k => $r) {
+
+      if (empty($r['category'])){
+        $result[$k]['category'] = 'Needs Cat';
+      }
       
       if (empty($r['model'])){
         $result[$k]['model'] = 'All Models';

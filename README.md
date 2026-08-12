@@ -22,7 +22,12 @@ A WordPress/WooCommerce plugin that adds year/make/model search functionality to
 The plugin can be configured through the WordPress admin panel under the "BRP YMM Search" menu.
 
 ## Version History
-
+- 1.0.12.8:
+  - added Vehicle Type Category Modification
+  - fixed quick edit section to be larger and support Vehicle Type Category and Notes
+  - made YEAR dropdown only show valid years based on Vehicle Type Category 
+  - expanded the horizontal_selector.php to 4 columns instead of 3
+  - Garage: hide Vehicle Type Category, only show Year, Make, Model  
 - 1.0.12.7:
   - Fixed fitment year display for lower-bound-only ranges (`0,2010` now shows `2010 and Below`)
   - CSV import/export now supports `product_id` in addition to `product_sku`
@@ -35,6 +40,7 @@ The plugin can be configured through the WordPress admin panel under the "BRP YM
   - On product page (front end), Fitment Tab:
     - Model column will show "All Models" instead of just being blank
     - Year will display "All Years" for ",0,0", "2016 and Above" for ",2016,0", and "2010 and Below" for ",0,2010"
+  - Show More/Less buttons on product fitment tab was removed to always show full table
 - 1.0.12.3-5 - ^ idk, read all changes in 1.0.12.6
 - 1.0.12.2 - Fixed category dropdown memory and added alphabetical sorting
 - 1.0.12.1 - Includes improvements for fitment display, category visibility, and configurable exclusions  
@@ -45,12 +51,8 @@ The plugin can be configured through the WordPress admin panel under the "BRP YM
 ## TO DO: TWEAKS / FIXES:
 - Make Leading Category view 4 columns instead of 3 which is pushing Model dropdown to a new line (horizontal filter)
   - YEAR Dropdown can be much more narrow to save space
-- Garage: hide leading category, only show ymm
 - Product List page: Quick Edit section doesn't work with Notes field, and will delete all notes if quickedit is used at all.
 - Product List page: YMM Data/(#) Vehicles Column is not sortable
-- Product List page: Quick Edit section needs to be larger horizontally for sure, maybe also vertically
-- Product List page: Quick Edit, get rid of Format/Example section to save space
-- Show More/Less buttons on product fitment tab need improvement
 
 
 ## New Ideas:

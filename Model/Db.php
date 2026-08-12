@@ -24,7 +24,6 @@ class Pektsekye_Ymm_Model_Db
     }    
 
 
-
      public function fetchColumnValues($params = array(), $categoryId = 0)     
     {
       $values = array();
@@ -32,7 +31,7 @@ class Pektsekye_Ymm_Model_Db
       $whereProducts = '';
       if ($categoryId > 0){
         $productIds = $this->getProductIdsOfCategory($categoryId);
-        if (count($productIds) > 0){        
+        if (count($productIds) > 0){
           $whereProducts = ' AND product_id IN ('.implode(',', $productIds).')';
         }
       }
@@ -40,41 +39,47 @@ class Pektsekye_Ymm_Model_Db
       $nextlevel = count($params);
             
       if ($nextlevel == 0){
-        $select = "SELECT DISTINCT year_from, year_to FROM {$this->_mainTable} WHERE year_from != 0 OR year_to != 0 {$whereProducts}";      
+        $select = "SELECT DISTINCT category FROM {$this->_mainTable} WHERE category != '' {$whereProducts} ORDER BY category";
+        $values = (array) $this->_wpdb->get_col($select);
+
+      } else if ($nextlevel == 1){
+        $category = esc_sql($params[0]);
+        $select = "SELECT DISTINCT year_from, year_to FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from != 0 OR year_to != 0) {$whereProducts}";
         $rows = (array) $this->_wpdb->get_results($select, ARRAY_A);
 
         $y = array();
-        
-        foreach ($rows as $r) {
 
+        foreach ($rows as $r) {
           $from = (int) $r['year_from'];
-          $to = (int) $r['year_to'];	
+          $to = (int) $r['year_to'];
 
           if ($from == 0){
-            $y[$to] = 1;          
+            $y[$to] = 1;
           } elseif ($to == 0){
             $y[$from] = 1;
           } elseif ($from == $to){
             $y[$from] = 1;
-          } elseif ($from < $to){          	
+          } elseif ($from < $to){
             while ($from <= $to){
               $y[$from] = 1;
               $from++;
-            }            
+            }
           }
-        } 
+        }
 
         krsort($y);
-                  
-        $values = array_keys($y);      
-      
-      } else if ($nextlevel == 1){
-        $year = (int) $params[0];
-        $select = "SELECT DISTINCT make FROM {$this->_mainTable} WHERE year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
-        $values = (array) $this->_wpdb->get_col($select);      
+        $values = array_keys($y);
+
+      } else if ($nextlevel == 2){
+        $category = esc_sql($params[0]);
+        $year = (int) $params[1];
+        $select = "SELECT DISTINCT make FROM {$this->_mainTable} WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
+        $values = (array) $this->_wpdb->get_col($select);
       } else {
-        $year = (int) $params[0];      
-        $select = "SELECT DISTINCT model FROM {$this->_mainTable} WHERE year_from <= {$year} AND year_to >= {$year} AND make = '".esc_sql($params[1])."' AND model != '' {$whereProducts} ORDER BY model";
+        $category = esc_sql($params[0]);
+        $year = (int) $params[1];
+        $make = esc_sql($params[2]);
+        $select = "SELECT DISTINCT model FROM {$this->_mainTable} WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make = '{$make}' AND model != '' {$whereProducts} ORDER BY model";
         $values = (array) $this->_wpdb->get_col($select);
       }
       
@@ -86,19 +91,30 @@ class Pektsekye_Ymm_Model_Db
      public function filterVehiclesForCategory($vehicles, $categoryId)     
     {
       $filteredVehicles = array();
-      
+
       $productIds = $this->getProductIdsOfCategory((int)$categoryId);
-      
+
       if (count($productIds) == 0)
         return array();
             
       foreach((array)$vehicles as $vehicle){
         $values = explode(',', $vehicle);
-        if (count($values) != 3){
+        if (count($values) < 3){
           continue;
         }
-        $year = (int) $values[0];
-        $select = "SELECT make FROM {$this->_mainTable} WHERE make = '".esc_sql($values[1])."' AND model = '".esc_sql($values[2])."' AND (year_from <= {$year} and year_to >= {$year}) AND product_id IN (" . implode(',', $productIds) . ") LIMIT 1";
+
+        if (count($values) >= 4){
+          $category = esc_sql($values[0]);
+          $year = (int) $values[1];
+          $make = esc_sql($values[2]);
+          $model = esc_sql($values[3]);
+          $select = "SELECT make FROM {$this->_mainTable} WHERE category = '{$category}' AND make = '{$make}' AND model = '{$model}' AND (year_from <= {$year} and year_to >= {$year}) AND product_id IN (" . implode(',', $productIds) . ") LIMIT 1";
+        } else {
+          $year = (int) $values[0];
+          $make = esc_sql($values[1]);
+          $model = esc_sql($values[2]);
+          $select = "SELECT make FROM {$this->_mainTable} WHERE make = '{$make}' AND model = '{$model}' AND (year_from <= {$year} and year_to >= {$year}) AND product_id IN (" . implode(',', $productIds) . ") LIMIT 1";
+        }
         $result = $this->_wpdb->get_var($select);
 
         if ($result){
@@ -110,17 +126,31 @@ class Pektsekye_Ymm_Model_Db
     
     
           
-     public function getProductIds($values)     
+     public function getProductIds($values)
     {    
       $level = count($values);
-      $year = (int) $values[0];
+
+      // Backward compatibility for old cookie/url format: year, make, model.
+      if ($level >= 3 && is_numeric($values[0])){
+        $year = (int) $values[0];
+
+        if ($level == 3){
+          $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[1])."' or make = '') AND (model = '".esc_sql($values[2])."' or model = '')";
+          return (array) $this->_wpdb->get_col($select);
+        }
+      }
+
+      $category = esc_sql($values[0]);
+      $year = isset($values[1]) ? (int) $values[1] : 0;
               
       if ($level == 1){      
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0)";      
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}'";
       } else if ($level == 2){
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[1])."' or make = '')";     
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0)";
+      } else if ($level == 3){
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '')";
       } else {
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[1])."' or make = '') AND (model = '".esc_sql($values[2])."' or model = '')";
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '') AND (model = '".esc_sql($values[3])."' or model = '')";
       }
 
       return (array) $this->_wpdb->get_col($select);    
@@ -138,7 +168,7 @@ class Pektsekye_Ymm_Model_Db
         $where .= ($where != '' ? ' AND ' : '') . "({$w})";          
       }
   
-      $select = "SELECT DISTINCT CONCAT_WS(', ', make, model, year_from, year_to, note) as restriction  FROM {$this->_mainTable} WHERE {$where} ORDER BY make, model, year_from, year_to LIMIT 64;";
+      $select = "SELECT DISTINCT CONCAT_WS(', ', category, make, model, year_from, year_to, note) as restriction  FROM {$this->_mainTable} WHERE {$where} ORDER BY category, make, model, year_from, year_to LIMIT 64;";
 
       return (array) $this->_wpdb->get_col($select);         
     }
@@ -148,15 +178,15 @@ class Pektsekye_Ymm_Model_Db
      public function getSampleVehicleData()     
     {
       $data = array(
-        array("100001","H4184","Daihatsu","Altis","2000","2008","note here"),
-        array("100002","PPF5471","Lexus","ES300","1992","1997",""),
-        array("100002","PPF5471","Lexus","GS300","1997","1999",""),
-        array("100002","PPF5471","Lexus","RX300","1999","2003",""),
-        array("100003","PPF5497","Toyota","Avalon","1999","2003",""),
-        array("100003","PPF5497","Toyota","Caldina","1997","2008",""),
-        array("100004","PPF5493","Toyota","Camry","1993","2000",""),
-        array("100005","PPF5077","Toyota","Carina","1993","1998",""),
-        array("100006","H4061","BMW","X5","2004","2008","")          
+        array("100001","H4184","Dirt Bikes","Daihatsu","Altis","2000","2008","note here"),
+        array("100002","PPF5471","Dirt Bikes","Lexus","ES300","1992","1997",""),
+        array("100002","PPF5471","Dirt Bikes","Lexus","GS300","1997","1999",""),
+        array("100002","PPF5471","ADV Bikes","Lexus","RX300","1999","2003",""),
+        array("100003","PPF5497","Truck","Toyota","Avalon","1999","2003",""),
+        array("100003","PPF5497","Truck","Toyota","Caldina","1997","2008",""),
+        array("100004","PPF5493","UTV/SXS","Toyota","Camry","1993","2000",""),
+        array("100005","PPF5077","UTV/SXS","Toyota","Carina","1993","1998",""),
+        array("100006","H4061","ADV Bikes","BMW","X5","2004","2008","")
       );
       
       $numberOfProducts = 6;
@@ -165,15 +195,15 @@ class Pektsekye_Ymm_Model_Db
       if (count($productIdsBySku) == $numberOfProducts){ // if there are enough products we can use existing product SKUs for sample data
         $productSkus = array_keys($productIdsBySku);
         $data = array(
-          array($productIdsBySku[$productSkus[0]],$productSkus[0],"Daihatsu","Altis","2000","2008","note here"),
-          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","ES300","1992","1997",""),
-          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","GS300","1997","1999",""),
-          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Lexus","RX300","1999","2003",""),
-          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Toyota","Avalon","1999","2003",""),
-          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Toyota","Caldina","1997","2008",""),
-          array($productIdsBySku[$productSkus[3]],$productSkus[3],"Toyota","Camry","1993","2000",""),
-          array($productIdsBySku[$productSkus[4]],$productSkus[4],"Toyota","Carina","1993","1998",""),
-          array($productIdsBySku[$productSkus[5]],$productSkus[5],"BMW","X5","2004","2008","")     
+          array($productIdsBySku[$productSkus[0]],$productSkus[0],"Dirt Bikes","Daihatsu","Altis","2000","2008","note here"),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Dirt Bikes","Lexus","ES300","1992","1997",""),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"Dirt Bikes","Lexus","GS300","1997","1999",""),
+          array($productIdsBySku[$productSkus[1]],$productSkus[1],"ADV Bikes","Lexus","RX300","1999","2003",""),
+          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Truck","Toyota","Avalon","1999","2003",""),
+          array($productIdsBySku[$productSkus[2]],$productSkus[2],"Truck","Toyota","Caldina","1997","2008",""),
+          array($productIdsBySku[$productSkus[3]],$productSkus[3],"UTV/SXS","Toyota","Camry","1993","2000",""),
+          array($productIdsBySku[$productSkus[4]],$productSkus[4],"UTV/SXS","Toyota","Carina","1993","1998",""),
+          array($productIdsBySku[$productSkus[5]],$productSkus[5],"ADV Bikes","BMW","X5","2004","2008","")
         );
       }
       
@@ -186,10 +216,10 @@ class Pektsekye_Ymm_Model_Db
       $productId = (int) $productId;    
          
       $select = "
-        SELECT make, model, year_from, year_to, note  
+        SELECT category, make, model, year_from, year_to, note
         FROM {$this->_mainTable} 
 		    WHERE product_id = {$productId} 
-		    ORDER BY make 	            
+		    ORDER BY category, make
       ";
       
       return (array) $this->_wpdb->get_results($select, ARRAY_A);         
@@ -199,9 +229,9 @@ class Pektsekye_Ymm_Model_Db
      public function getAllProductRestrictions()     
     {
       $select = "
-        SELECT DISTINCT make, model, year_from, year_to  
+        SELECT DISTINCT category, make, model, year_from, year_to
         FROM {$this->_mainTable} 
-		    ORDER BY make 	            
+		    ORDER BY category, make
       ";
       
       return (array) $this->_wpdb->get_results($select, ARRAY_A);         
@@ -214,7 +244,7 @@ class Pektsekye_Ymm_Model_Db
     
       $result = $this->getProductRestrictions($productId);     
       foreach ($result as $row){
-        $text .= "{$row['make']}, {$row['model']}, {$row['year_from']}, {$row['year_to']}, {$row['note']}\n";
+        $text .= "{$row['category']}, {$row['make']}, {$row['model']}, {$row['year_from']}, {$row['year_to']}, {$row['note']}\n";
       }
       
       return $text;     
@@ -232,7 +262,7 @@ class Pektsekye_Ymm_Model_Db
       
       $fieldNames = $this->_config->getCsvColumnNames();
 
-      // Product-level restriction textarea contains only make/model/year/note columns.
+      // Product-level restriction textarea contains only category/make/model/year/note columns.
       // CSV headers include product columns that should be ignored here.
       $fieldNames = array_values(array_diff($fieldNames, array('product_id', 'product_sku')));
           
@@ -252,11 +282,16 @@ class Pektsekye_Ymm_Model_Db
           return;          
         }
 
-        $make = trim($values[0]);
-        $model = trim($values[1]);
-        $yearFrom = (int) $values[2];
-        $yearTo = (int) $values[3];
-        $note = $values[4];   
+        $category = trim($values[0]);
+        if ($category == ''){
+          $category = 'Needs Cat';
+        }
+
+        $make = trim($values[1]);
+        $model = trim($values[2]);
+        $yearFrom = (int) $values[3];
+        $yearTo = (int) $values[4];
+        $note = isset($values[5]) ? $values[5] : '';
                
         if ($yearFrom > 0){
           if ($yearFrom < 1950){
@@ -274,7 +309,7 @@ class Pektsekye_Ymm_Model_Db
           }                        
         }        
                                 
-        $data[] = array($productId, $make, $model, $yearFrom, $yearTo, $note);      
+        $data[] = array($productId, $category, $make, $model, $yearFrom, $yearTo, $note);
       }
       
       $this->_wpdb->query("DELETE FROM {$this->_mainTable} WHERE product_id = {$productId}"); 
@@ -291,7 +326,7 @@ class Pektsekye_Ymm_Model_Db
       $queryLimit = $limit > 0 ? " LIMIT {$limit} " : '';    
     
       $select = "
-        SELECT DISTINCT posts.ID as product_id, IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.make, ymm.model, ymm.year_from, ymm.year_to, ymm.note
+        SELECT DISTINCT posts.ID as product_id, IF(LENGTH(postmeta.meta_value)>0, postmeta.meta_value, posts.ID) as product_sku, ymm.category, ymm.make, ymm.model, ymm.year_from, ymm.year_to, ymm.note
         FROM {$this->_wpdb->posts} AS posts 
 		    LEFT JOIN {$this->_wpdb->postmeta} AS postmeta 
 		      ON postmeta.post_id = posts.ID AND postmeta.meta_key = '_sku' 
@@ -371,8 +406,8 @@ class Pektsekye_Ymm_Model_Db
                        
         $valuesStr .= ($valuesStr != '' ? ',' : '') . "(NULL{$cell})";     
       }
-      
-      $this->_wpdb->query("INSERT IGNORE INTO {$this->_mainTable} VALUES {$valuesStr}");                  
+
+      $this->_wpdb->query("INSERT IGNORE INTO {$this->_mainTable} (id, product_id, category, make, model, year_from, year_to, note) VALUES {$valuesStr}");
     }   
 
 
@@ -407,7 +442,7 @@ class Pektsekye_Ymm_Model_Db
     public function getYmmDataByProductId($product_id)
     {
         $product_id = (int) $product_id;
-        $sql = "SELECT make, model, year_from, year_to FROM {$this->_mainTable} WHERE product_id = %d ORDER BY make, model, year_from";
+        $sql = "SELECT category, make, model, year_from, year_to, note FROM {$this->_mainTable} WHERE product_id = %d ORDER BY category, make, model, year_from";
         return $this->_wpdb->get_results($this->_wpdb->prepare($sql, $product_id), ARRAY_A);
     }
     
@@ -417,17 +452,19 @@ class Pektsekye_Ymm_Model_Db
         $this->_wpdb->delete($this->_mainTable, array('product_id' => $product_id), array('%d'));
     }
     
-    public function insertYmmData($product_id, $make, $model, $year_from, $year_to)
+    public function insertYmmData($product_id, $category, $make, $model, $year_from, $year_to, $note = '')
     {
         $data = array(
             'product_id' => (int) $product_id,
+        'category' => sanitize_text_field($category),
             'make' => sanitize_text_field($make),
             'model' => sanitize_text_field($model),
             'year_from' => (int) $year_from,
-            'year_to' => (int) $year_to
+        'year_to' => (int) $year_to,
+        'note' => sanitize_text_field($note)
         );
         
-        $this->_wpdb->insert($this->_mainTable, $data, array('%d', '%s', '%s', '%d', '%d'));
+      $this->_wpdb->insert($this->_mainTable, $data, array('%d', '%s', '%s', '%s', '%d', '%d', '%s'));
     }	
        
 }

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BRP YMM Search
  * Description: Customer can search for parts by vehicle year, make, and model. A fork of ymm-search from Pektsekye
- * Version: 1.0.12.7
+ * Version: 1.0.12.8
  * Author: BRP / Tim Kirtland
  * Author URI: https://github.com/EnduringGuerila/brp-ymm-search
  * License: GPLv2     
@@ -79,6 +79,7 @@ final class Pektsekye_Ymm {
     add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts') );
     
     add_action( 'plugins_loaded', array( $this, 'load_textdomain') );     
+    add_action( 'plugins_loaded', array( $this, 'maybe_upgrade_schema' ), 20 );
     add_action( 'widgets_init', array( $this, 'register_widgets') );    
     add_action( 'admin_menu', array( $this, 'set_admin_menu' ), 70 );
      
@@ -92,6 +93,14 @@ final class Pektsekye_Ymm {
     add_action("wpseo_do_sitemap_ymm", array( $this, 'ex_generate_origin_combo_sitemap'));    
     add_filter( 'wpseo_enable_xml_sitemap_transient_caching', '__return_false'); //disable caching for testing      
 
+  }
+
+
+  public function maybe_upgrade_schema() {
+    if (!class_exists('Pektsekye_Ymm_Setup_Install')) {
+      include_once('Setup/Install.php');
+    }
+    Pektsekye_Ymm_Setup_Install::maybe_upgrade_schema();
   }
 
 
@@ -124,6 +133,7 @@ final class Pektsekye_Ymm {
     $db =  new Pektsekye_Ymm_Model_Db();
           
     foreach ($db->getAllProductRestrictions() as $k => $r) {
+      $category = isset($r['category']) ? $r['category'] : '';
       $make = $r['make'];
       $model = $r['model'];      
       $from = (int) $r['year_from'];
@@ -142,10 +152,10 @@ final class Pektsekye_Ymm {
       }
       
       if (count($years) == 0){
-        $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_make='.$make.'&_model='.$model;
+        $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_category='.urlencode($category).'&_make='.urlencode($make).'&_model='.urlencode($model);
       } else {
         foreach ($years as $year) {
-          $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_make='.$make.'&_model='.$model.'&_year='.$year;        
+          $urls[] = get_site_url(null, '/') . '?s=&ymm_search=1&post_type=product&_category='.urlencode($category).'&_year='.$year.'&_make='.urlencode($make).'&_model='.urlencode($model);
         }
       }
     }    

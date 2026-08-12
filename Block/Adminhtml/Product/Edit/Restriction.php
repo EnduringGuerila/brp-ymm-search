@@ -24,7 +24,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction {
 
   public function getFormatExplanationMessage() 
   {
-    return __('Correct format is five columns in a row (four commas). Then a new line. Example:<br> KTM, 450 SX-F, 1990, 2005, note here<br>Honda, XR 650R, 1997, 2007, <br>GasGas, MC 350F, 2021, 2024,<br><br>All models of one make:<br>KTM, , 0, 0,', 'ymm-search');
+    return __('Correct format is six columns in a row (five commas). Then a new line. Example:<br> Dirt Bikes, KTM, 450 SX-F, 1990, 2005, note here<br>ADV Bikes, KTM, 1290 Super Adv., 2021, 2024, <br>UTV/SXS, CanAm, Maverick R, 2024, 2026,<br><br>All models of one make:<br>Dirt Bikes, KTM, , 0, 0,', 'ymm-search');
   }
   
 
@@ -94,15 +94,14 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_Edit_Restriction {
         jQuery('#ymm_restriction').change(function(){jQuery('#ymm_restriction_changed').val(1)});
         jQuery('#ymm_sample').click(function(){
           var sample =
-            "Daihatsu,Altis,2000,2008,note here \r\n"+
-            "Lexus,ES300,1992,1997, \r\n"+
-            "Lexus,GS300,1997,1999, \r\n"+
-            "Lexus,RX300,1999,2003, \r\n"+
-            "Toyota,Avalon,1999,2003, \r\n"+
-            "Toyota,Caldina,1997,2008, \r\n"+
-            "Toyota,Camry,1993,2000, \r\n"+
-            "Toyota,Carina,1993,1998, \r\n"+
-            "BMW,X5,2004,2008, \r\n";       
+            "Dirt Bikes,Honda,XR 650L,2000,2020,note here \r\n"+
+            "Dirt Bikes,Beta,350 RR X-PRO,2025,2026, \r\n"+
+            "Dirt Bikes,Husqvarna,FE 501,2016,2026, \r\n"+
+            "ADV Bikes,KTM,1290 Super Adv.,2021,2024, \r\n"+
+            "ADV Bikes,Yamaha,Tenere 700,2019,2025, \r\n";
+            "UTV/SXS,CanAm,Maverick R,2024,2026, \r\n"+
+            "UTV/SXS,Polaris,RZR-1000 Turbo R,2022,2025, \r\n"+
+            "Truck,Dodge,Ram,2010,2016, \r\n"+
           jQuery('#ymm_restriction').val(sample).change();
           return false;
         });

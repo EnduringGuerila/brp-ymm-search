@@ -6,7 +6,10 @@ jQuery(document).ready(function($) {
         var ymmData = $('.ymm-data[data-product-id="' + postId + '"]').text();
         
         setTimeout(function() {
-            $('.ymm-data-field').val(ymmData);
+            var $inlineRow = $('#edit-' + postId);
+            if ($inlineRow.length) {
+                $inlineRow.find('.ymm-data-field').val(ymmData);
+            }
         }, 100);
     });
 });

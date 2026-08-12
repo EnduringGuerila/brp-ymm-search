@@ -28,7 +28,7 @@ This document is a fast map of the plugin for future maintenance and feature wor
 - `etc/config.php`
   - Defines selector levels and URL params.
   - Defines CSV column order:
-    - `product_id, product_sku, make, model, year_from, year_to, note`
+    - `product_id, product_sku, category, make, model, year_from, year_to, note`
 
 ### Data Access
 
@@ -46,10 +46,11 @@ This document is a fast map of the plugin for future maintenance and feature wor
 
 - `Model/Db/CsvImportHandler.php`
   - Validates uploaded CSV and strict header order.
-  - Accepts new header and legacy header (without `product_id`) for backward compatibility.
+  - Accepts new header plus legacy headers (missing `product_id`, `category`, or both) for backward compatibility.
   - Loads product lookup values via `getProductIdsById()` and `getProductIdsBySku()`.
   - Uses `product_id` first; falls back to `product_sku` only when `product_id` is missing.
-  - Normalizes year range to 1950..2030.
+  - Normalizes year range to 1950..2040.
+  - Defaults missing category values to `Needs Cat` and reports a warning count.
   - Bulk inserts in batches.
 
 - `Controller/Adminhtml/Ymm/Selector.php`
@@ -80,13 +81,15 @@ This document is a fast map of the plugin for future maintenance and feature wor
 
 - `Setup/Install.php`
   - Creates table `{wp_prefix}ymm` with columns:
-    - `id, product_id, make, model, year_from, year_to, note`
-  - Unique key on (`product_id, make, model, year_from, year_to`).
+    - `id, product_id, category, make, model, year_from, year_to, note`
+  - Unique key on (`product_id, category, make, model, year_from, year_to`).
+  - Includes schema migration to add `category` to existing installs.
 
 ## Database Model (Practical)
 
 - The YMM table stores product linkage by `product_id` (not SKU).
 - CSV export now emits `product_id` as the first column, then `product_sku`.
+- CSV export emits plain-text `category` for row-level leading category mapping.
 - CSV import resolves to `product_id` and inserts only DB table columns.
 
 ## CSV Import Behavior: SKU vs Product ID

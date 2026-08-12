@@ -54,10 +54,10 @@
 .ymm-selector.ymm-horizontal .ymm-title .widget-title { padding:0 !important; margin:0 !important; border:none !important;}
 .ymm-selector.ymm-horizontal .ymm-title-right {float:right; margin:3px 1.2% 0 0;}
 .ymm-selector.ymm-horizontal .ymm-title-right .ymm-garage-select {width:auto; margin:0; color: #575757;} 
-.ymm-selector.ymm-horizontal .level {margin:0; float:left; width:33.3%;}
+.ymm-selector.ymm-horizontal > .block-content > .level {margin:0; float:left; width:25%;}
 .ymm-selector.ymm-horizontal .level select.disabled { border-color:#bbb !important; background:#bbb !important; }
 .ymm-selector.ymm-horizontal .level select.ymm-select,
-.ymm-selector.ymm-horizontal .level select.ymm-category-select {width:97%; margin:0; color: #575757; font-size: 16px;}
+.ymm-selector.ymm-horizontal .level select.ymm-category-select {width:96%; margin:0; color: #575757; font-size: 16px;}
 .ymm-selector.ymm-horizontal .level select.ymm-category-select {margin-top:8px;}
 .ymm-selector.ymm-horizontal .ymm-extra .ymm-search {margin:6px 1% 0 0;}
 .ymm-selector.ymm-horizontal .ymm-extra .ymm-search .ymm-or-search{display:none;}
@@ -70,4 +70,34 @@
 .ymm-selector.ymm-horizontal .ymm-extra .ymm-search table td.ymm-td-button  {width:1px;white-space: nowrap;padding:0 0 0 9px;}
 .ymm-selector.ymm-horizontal .ymm-submit-any-selection {margin-top:6px;}
 .ymm-selector.ymm-horizontal .ymm-clear {clear:both;height:1px;}
+
+/* Keep product-category dropdown levels from becoming wider than primary Vehicle Type column. */
+.ymm-selector.ymm-horizontal .ymm-category-container .level {
+    float: left;
+    margin: 0;
+    width: 28.5%;
+    max-width: 28.5%;
+}
+
+.ymm-selector.ymm-horizontal .ymm-category-container .level select.ymm-category-select {
+    width: 96%;
+}
+
+/* Horizontal selector: keep 4 YMM selectors on one row and shrink Year width. */
+@media (min-width: 980px) {
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(1),
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(3),
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(4) {
+        width: 28.5%;
+    }
+
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(2) {
+        width: 14.5%;
+    }
+
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(2) select.ymm-select,
+    .ymm-selector.ymm-horizontal > .block-content > .level:nth-of-type(2) select.ymm-category-select {
+        width: 92%;
+    }
+}
 

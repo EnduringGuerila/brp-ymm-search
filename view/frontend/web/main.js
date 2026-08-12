@@ -327,7 +327,12 @@
             var l = selected.vehicles.length;		  
             for (var i=0;i<l;i++){
               vehicle = selected.vehicles[i];
-              this.garageSelect[0].options[i+1] = new Option(vehicle.split(',').join(' '), vehicle);
+              var parts = vehicle.split(',');
+              for (var p = 0; p < parts.length; p++) {
+                parts[p] = $.trim(parts[p]);
+              }
+              var vehicleLabel = parts.length >= 4 ? parts.slice(parts.length - 3).join(' ') : parts.join(' ');
+              this.garageSelect[0].options[i+1] = new Option(vehicleLabel, vehicle);
             }
             if (selected.vehicle){
               this.garageSelect.val(selected.vehicle).change();

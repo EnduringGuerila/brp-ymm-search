@@ -18,11 +18,15 @@ $message = $this->getMessage();
   <?php endif;?>     
   <button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php echo __( 'Dismiss this notice.', 'woocommerce' );?></span></button></div>
 <?php endif;?>
+<?php if (isset($message['warning'])): ?>
+  <div class="notice notice-warning is-dismissible below-h2"><p><?php echo $message['warning']; ?></p></div>
+<?php endif;?>
 <div class="ymm-section">
   <div><h4><?php echo __('Import YMM Data', 'brp-ymm-search'); ?>:</h4></div>    
   <form action="?page=ymm&action=importData" method="post" enctype="multipart/form-data">
       <fieldset class="ymm-fieldset">              
 		  <?php wp_nonce_field('ymm_update_configuration', 'ymm_nonce'); ?>
+          <p><strong><?php echo __('Import Header Example:', 'brp-ymm-search'); ?></strong><br/>"product_id(optional),product_sku,category,make,model,year_from,year_to,note"</p>
           <input type="file" name="import_file" class="input-file required-entry"/>
           <input type="checkbox" name="delete_old" id="ymm_delete_old" value="1"/>
           <label for="ymm_delete_old"><?php echo __('delete existing values', 'brp-ymm-search'); ?></label>
@@ -46,7 +50,7 @@ $message = $this->getMessage();
           <label for="ymm_fitment"><?php echo __('Display vehicle fitment on front-end product view page', 'brp-ymm-search'); ?></label>
           <br/><br/>     
           <input type="checkbox" name="ymm_enable_category_dropdowns" id="ymm_category_dropdowns" value="1" <?php echo $this->getDisplayCategoryDropdowns() ? 'checked="checked"' : ''; ?>>
-          <label for="ymm_category_dropdowns"><?php echo __('Display category drop-downs after selecting make, model', 'brp-ymm-search'); ?></label>
+          <label for="ymm_category_dropdowns"><?php echo __('Display Product Category drop-downs after selecting Category, Year, Make, Model', 'brp-ymm-search'); ?></label>
           <br/><br/>    
           <input type="checkbox" name="ymm_enable_search_field" id="ymm_enable_search_field" value="1" <?php echo $this->getDisplaySearchField() ? 'checked="checked"' : ''; ?>>
           <label for="ymm_enable_search_field"><?php echo __('Display search text field after selecting make, model', 'brp-ymm-search'); ?></label>

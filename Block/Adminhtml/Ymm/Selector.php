@@ -56,7 +56,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Ymm_Selector {
   
   public function getDisplaySearchField() 
   {
-    return get_option('ymm_enable_search_field') == 'no';
+    return get_option('ymm_enable_search_field') == 'yes';
   }  
   
   

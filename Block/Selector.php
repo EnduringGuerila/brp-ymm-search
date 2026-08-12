@@ -300,7 +300,13 @@ class Pektsekye_Ymm_Block_Selector {
           $vehicles = $this->_db->filterVehiclesForCategory($vehicles, (int)$this->getCategoryId());//vehicles that have products for current category
         }
         foreach($vehicles as $vehicle){
-          $garageVehicles[] = array('title' => str_replace(',', ' ', $vehicle), 'value' => $vehicle);
+          $parts = array_map('trim', explode(',', $vehicle));
+          if (count($parts) >= 4){
+            $title = implode(' ', array_slice($parts, -3)); // show Year Make Model, hide Vehicle Type Category
+          } else {
+            $title = implode(' ', $parts); // backward compatibility for older cookie values
+          }
+          $garageVehicles[] = array('title' => $title, 'value' => $vehicle);
         }      
       }
       $this->_garageVehicles = $garageVehicles;

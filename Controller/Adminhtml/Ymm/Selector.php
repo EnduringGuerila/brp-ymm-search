@@ -35,8 +35,11 @@ class Pektsekye_Ymm_Controller_Adminhtml_Ymm_Selector {
           if (isset($_FILES['import_file'])){
             $mode = isset($_POST['delete_old']) && $_POST['delete_old'] == 1 ? 'delete_old' : 'add_new';                        
             try {                               
-              $this->_dbImportHandler->importFromCsvFile($_FILES['import_file'], $mode);
-              Pektsekye_YMM()->setMessage(__('Ymm CSV file has been imported.', 'brp-ymm-search'));                 
+              $missingCategoryCount = (int) $this->_dbImportHandler->importFromCsvFile($_FILES['import_file'], $mode);
+              Pektsekye_YMM()->setMessage(__('Ymm CSV file has been imported.', 'brp-ymm-search'));
+              if ($missingCategoryCount > 0){
+                Pektsekye_YMM()->setMessage(sprintf(__('%d row(s) were missing category and were imported with default category "Needs Cat".', 'brp-ymm-search'), $missingCategoryCount), 'warning');
+              }
             } catch (Exception $e){
               Pektsekye_YMM()->setMessage(__('Ymm CSV file has not been imported.', 'brp-ymm-search') .' '. $e->getMessage(), 'error');                    
             }

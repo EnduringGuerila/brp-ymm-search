@@ -53,7 +53,7 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
     private function format_ymm_data_for_edit( $ymm_data ) {
         $formatted = array();
         foreach ( $ymm_data as $item ) {
-            $formatted[] = $item['make'] . ', ' . $item['model'] . ', ' . $item['year_from'] . ', ' . $item['year_to'];
+            $formatted[] = $item['category'] . ', ' . $item['make'] . ', ' . $item['model'] . ', ' . $item['year_from'] . ', ' . $item['year_to'] . ', ' . $item['note'];
         }
         return implode( "\n", $formatted );
     }
@@ -61,15 +61,11 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
     public function add_quick_edit_fields() {
         ?>
         <br class="clear" />
-        <div class="inline-edit-group">
+        <div class="inline-edit-group ymm-quick-edit-group">
             <label class="alignleft">
                 <span class="title"><?php _e( 'YMM Data', 'brp-ymm-search' ); ?></span>
-                <textarea name="ymm_data" class="ymm-data-field" rows="3" placeholder="<?php _e( 'Make, Model, Year From, Year To (one per line)', 'brp-ymm-search' ); ?>"></textarea>
+                <textarea name="ymm_data" class="ymm-data-field" rows="7" placeholder="<?php _e( 'Category, Make, Model, Year From, Year To, Note (one per line)', 'brp-ymm-search' ); ?>"></textarea>
             </label>
-            <p class="description">
-                <?php _e( 'Format: Make, Model, Year From, Year To (one vehicle per line)', 'brp-ymm-search' ); ?>
-                <br><?php _e( 'Example: Toyota, Camry, 2015, 2020', 'brp-ymm-search' ); ?>
-            </p>
         </div>
         <?php
     }
@@ -99,13 +95,15 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
             }
             
             $parts = array_map( 'trim', explode( ',', $line ) );
-            if ( count( $parts ) >= 4 ) {
-                $make = $parts[0];
-                $model = $parts[1];
-                $year_from = intval( $parts[2] );
-                $year_to = intval( $parts[3] );
-                
-                $this->_db->insertYmmData( $product_id, $make, $model, $year_from, $year_to );
+            if ( count( $parts ) >= 5 ) {
+                $category = $parts[0] !== '' ? $parts[0] : 'Needs Cat';
+                $make = $parts[1];
+                $model = $parts[2];
+                $year_from = intval( $parts[3] );
+                $year_to = intval( $parts[4] );
+                $note = isset( $parts[5] ) ? $parts[5] : '';
+
+                $this->_db->insertYmmData( $product_id, $category, $make, $model, $year_from, $year_to, $note );
             }
         }
     }
@@ -116,14 +114,14 @@ class Pektsekye_Ymm_Block_Adminhtml_Product_QuickEdit {
                 'ymm-quick-edit',
                 Pektsekye_YMM()->getPluginUrl() . 'view/adminhtml/web/quick-edit.js',
                 array( 'jquery' ),
-                '1.0.12.2',
+                '1.0.12.8.11',
                 true
             );
             wp_enqueue_style(
                 'ymm-quick-edit',
                 Pektsekye_YMM()->getPluginUrl() . 'view/adminhtml/web/quick-edit.css',
                 array(),
-                '1.0.12.2'
+                '1.0.12.8.11'
             );
         }
     }
