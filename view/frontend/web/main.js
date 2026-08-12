@@ -386,21 +386,28 @@
           var widget = this;
           $.ajax({
               type: 'GET',
-              url: this.ajaxShortUrl ? this.ajaxShortUrl : this.ajaxUrl,
+              url: this.ajaxUrl,
               async: true,
               data: {action:'ymm_selector_fetch', cId:categoryId, 'values[]':values},
               dataType: 'json'
           }).done(
               function (data) {
-                if (!data.error){           
-                  if (data.length == 0){//there are no values for the next drop-down
-                    //widget.submit();
-                  } else {                
-                    widget.enableLevel(element, data, nextLevel);
-                  }
+                var options = $.isArray(data) ? data : [];
+
+                if (data && data.error){
+                  widget.clearLoadingText(element);
+                  return;
+                }
+
+                if (options.length == 0){//there are no values for the next drop-down
+                  widget.clearLoadingText(element);
+                } else {
+                  widget.enableLevel(element, options, nextLevel);
                 }  
               }
-            );
+            ).fail(function () {
+              widget.clearLoadingText(element);
+            });
             this.showLoadingText(element);   
         }  
       
@@ -415,10 +422,33 @@
         select = $(element).closest('.level').next().find('.ymm-select');
       else  
         select = $(element).next('.ymm-select'); 
+
+      if (!select.length || !select[0]) {
+        return;
+      }
            
       select[0].options[1] = new Option('Loading...', '');
       select[0].selectedIndex = 1;   
     },  
+
+
+    clearLoadingText : function(element){
+      var select;
+
+      if (this.isHorizontal)
+        select = $(element).closest('.level').next().find('.ymm-select');
+      else
+        select = $(element).next('.ymm-select');
+
+      if (!select.length || !select[0]) {
+        return;
+      }
+
+      select[0].length = 1;
+      select[0].selectedIndex = 0;
+      select[0].disabled = true;
+      select.addClass('disabled');
+    },
   
   
     enableLevel : function(element, options, level){
@@ -428,8 +458,10 @@
       else  
         var select = $(element).next('.ymm-select');
 
-      // Sort options using natural sorting for better model ordering
-      options.sort($.proxy(this.naturalSort, this));
+      // Keep backend order for Year (descending from SQL), and use natural sort for text levels.
+      if (level !== 1){
+        options.sort($.proxy(this.naturalSort, this));
+      }
     
       var l = options.length;		  
       for (var i=0;i<l;i++)
@@ -790,6 +822,9 @@
     
     
     naturalSort : function(a, b) {
+      a = String(a);
+      b = String(b);
+
       // Parse model strings like "CRF 450R", "TC 65", "85 SX", "150 XC-W", "1090 Adv", "1290 Super Adv"
       var parseModel = function(model) {
         // Remove extra spaces and normalize

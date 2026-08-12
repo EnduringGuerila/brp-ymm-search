@@ -59,29 +59,39 @@ if ($_GET['action'] == 'ymm_selector_fetch'){
         $y[$from] = 1;
       } elseif ($from < $to){
         while ($from <= $to){
-          $y[$from] = 1;
+        $select = "SELECT DISTINCT year_from, year_to FROM {$wpdb->prefix}ymm WHERE category = '{$category}' {$whereProducts}";
           $from++;
         }
       }
+        $minYear = 1950;
+        $maxYear = 2040;
     }
 
     krsort($y);
     $values = array_keys($y);
 
   } else if ($nextlevel == 2){
-    $category = esc_sql($values[0]);
-    $year = (int) $values[1];
-    $select = "SELECT DISTINCT make FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
-    $values = (array) $wpdb->get_col($select);
+          if ($from == 0 && $to == 0){
+            $from = $minYear;
+            $to = $maxYear;
+          } elseif ($from == 0){
+            $from = $minYear;
+          } elseif ($to == 0){
+            $to = $maxYear;
+          }
+
+          if ($from == $to){
+            $y[$from] = 1;
+          } elseif ($from < $to){
+            while ($from <= $to){
+              $y[$from] = 1;
+              $from++;
+            }
+          } else {
+            // Guard against malformed ranges where year_from > year_to.
+            $y[$from] = 1;
+            $y[$to] = 1;
   } else {
-    $category = esc_sql($values[0]);
-    $year = (int) $values[1];
-    $make = esc_sql($values[2]);
-    $select = "SELECT DISTINCT model FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make = '{$make}' AND model != '' {$whereProducts} ORDER BY model";
-    $values = (array) $wpdb->get_col($select);
-  }
-  
-echo json_encode($values);
 exit;
 
 
@@ -90,13 +100,13 @@ exit;
   if (count($values) < 4){
     echo '{}'; 
     exit;     
-  }
+        $select = "SELECT DISTINCT make FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND (year_from <= {$year} OR year_from = 0) AND (year_to >= {$year} OR year_to = 0) AND make != '' {$whereProducts} ORDER BY make";
   
   require_once( ABSPATH . WPINC . '/link-template.php' );
   require_once( ABSPATH . WPINC . '/taxonomy.php' );
   require_once( ABSPATH . WPINC . '/class-wp-taxonomy.php' );
   require_once( ABSPATH . WPINC . '/rewrite.php' );
-  require_once( ABSPATH . WPINC . '/class-wp-rewrite.php');
+        $select = "SELECT DISTINCT model FROM {$wpdb->prefix}ymm WHERE category = '{$category}' AND (year_from <= {$year} OR year_from = 0) AND (year_to >= {$year} OR year_to = 0) AND make = '{$make}' AND model != '' {$whereProducts} ORDER BY model";
   require_once( ABSPATH . WPINC . '/class-wp-term.php' );
   require_once( ABSPATH . WPINC . '/class-wp-term-query.php' );
   require_once( ABSPATH . WPINC . '/post-formats.php' );

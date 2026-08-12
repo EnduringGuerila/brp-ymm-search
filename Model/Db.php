@@ -49,21 +49,76 @@ class Pektsekye_Ymm_Model_Db
 
         $y = array();
 
+        // Derive expansion bounds from real data so 0/0 does not force an arbitrary 1950-2040 range.
+        $minYear = null;
+        $maxYear = null;
+        foreach ($rows as $r) {
+          $fromRaw = (int) $r['year_from'];
+          $toRaw = (int) $r['year_to'];
+
+          if ($fromRaw > 0){
+            $minYear = is_null($minYear) ? $fromRaw : min($minYear, $fromRaw);
+            $maxYear = is_null($maxYear) ? $fromRaw : max($maxYear, $fromRaw);
+          }
+
+          if ($toRaw > 0){
+            $minYear = is_null($minYear) ? $toRaw : min($minYear, $toRaw);
+            $maxYear = is_null($maxYear) ? $toRaw : max($maxYear, $toRaw);
+          }
+        }
+
+        // If category has only open-ended rows, fall back to global non-zero years.
+        if (is_null($minYear) || is_null($maxYear)){
+          $boundsSelect = "
+            SELECT MIN(val) AS min_year, MAX(val) AS max_year
+            FROM (
+              SELECT year_from AS val FROM {$this->_mainTable} WHERE year_from > 0 {$whereProducts}
+              UNION ALL
+              SELECT year_to AS val FROM {$this->_mainTable} WHERE year_to > 0 {$whereProducts}
+            ) years
+          ";
+          $bounds = (array) $this->_wpdb->get_row($boundsSelect, ARRAY_A);
+          if (!empty($bounds)){
+            if (!is_null($bounds['min_year'])){
+              $minYear = (int) $bounds['min_year'];
+            }
+            if (!is_null($bounds['max_year'])){
+              $maxYear = (int) $bounds['max_year'];
+            }
+          }
+        }
+
+        // Last-resort safety bound if the table contains only zero years.
+        if (is_null($minYear) || is_null($maxYear)){
+          $currentYear = (int) date('Y');
+          $minYear = $currentYear;
+          $maxYear = $currentYear;
+        }
+
         foreach ($rows as $r) {
           $from = (int) $r['year_from'];
           $to = (int) $r['year_to'];
 
-          if ($from == 0){
-            $y[$to] = 1;
+          if ($from == 0 && $to == 0){
+            $from = $minYear;
+            $to = $maxYear;
+          } elseif ($from == 0){
+            $from = $minYear;
           } elseif ($to == 0){
-            $y[$from] = 1;
-          } elseif ($from == $to){
+            $to = $maxYear;
+          }
+
+          if ($from == $to){
             $y[$from] = 1;
           } elseif ($from < $to){
             while ($from <= $to){
               $y[$from] = 1;
               $from++;
             }
+          } else {
+            // Guard against malformed ranges where year_from > year_to.
+            $y[$from] = 1;
+            $y[$to] = 1;
           }
         }
 
@@ -73,14 +128,140 @@ class Pektsekye_Ymm_Model_Db
       } else if ($nextlevel == 2){
         $category = esc_sql($params[0]);
         $year = (int) $params[1];
-        $select = "SELECT DISTINCT make FROM {$this->_mainTable} WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make != '' {$whereProducts} ORDER BY make";
-        $values = (array) $this->_wpdb->get_col($select);
+
+        $select = "SELECT make, year_from, year_to FROM {$this->_mainTable} WHERE category = '{$category}' AND make != '' {$whereProducts}";
+        $rows = (array) $this->_wpdb->get_results($select, ARRAY_A);
+
+        $globalMin = null;
+        $globalMax = null;
+        $boundsByMake = array();
+
+        foreach ($rows as $r){
+          $makeKey = (string) $r['make'];
+          $fromRaw = (int) $r['year_from'];
+          $toRaw = (int) $r['year_to'];
+
+          if (!isset($boundsByMake[$makeKey])){
+            $boundsByMake[$makeKey] = array('min' => null, 'max' => null);
+          }
+
+          if ($fromRaw > 0){
+            $boundsByMake[$makeKey]['min'] = is_null($boundsByMake[$makeKey]['min']) ? $fromRaw : min($boundsByMake[$makeKey]['min'], $fromRaw);
+            $boundsByMake[$makeKey]['max'] = is_null($boundsByMake[$makeKey]['max']) ? $fromRaw : max($boundsByMake[$makeKey]['max'], $fromRaw);
+            $globalMin = is_null($globalMin) ? $fromRaw : min($globalMin, $fromRaw);
+            $globalMax = is_null($globalMax) ? $fromRaw : max($globalMax, $fromRaw);
+          }
+
+          if ($toRaw > 0){
+            $boundsByMake[$makeKey]['min'] = is_null($boundsByMake[$makeKey]['min']) ? $toRaw : min($boundsByMake[$makeKey]['min'], $toRaw);
+            $boundsByMake[$makeKey]['max'] = is_null($boundsByMake[$makeKey]['max']) ? $toRaw : max($boundsByMake[$makeKey]['max'], $toRaw);
+            $globalMin = is_null($globalMin) ? $toRaw : min($globalMin, $toRaw);
+            $globalMax = is_null($globalMax) ? $toRaw : max($globalMax, $toRaw);
+          }
+        }
+
+        if (is_null($globalMin) || is_null($globalMax)){
+          $currentYear = (int) date('Y');
+          $globalMin = $currentYear;
+          $globalMax = $currentYear;
+        }
+
+        $matchedMakes = array();
+
+        foreach ($rows as $r){
+          $make = (string) $r['make'];
+          $from = (int) $r['year_from'];
+          $to = (int) $r['year_to'];
+
+          $makeMin = isset($boundsByMake[$make]) ? $boundsByMake[$make]['min'] : null;
+          $makeMax = isset($boundsByMake[$make]) ? $boundsByMake[$make]['max'] : null;
+
+          if ($from == 0 && $to == 0){
+            $from = is_null($makeMin) ? $globalMin : $makeMin;
+            $to = is_null($makeMax) ? $globalMax : $makeMax;
+          } elseif ($from == 0){
+            $from = is_null($makeMin) ? $globalMin : $makeMin;
+          } elseif ($to == 0){
+            $to = is_null($makeMax) ? $globalMax : $makeMax;
+          }
+
+          if ($from <= $year && $to >= $year){
+            $matchedMakes[$make] = 1;
+          }
+        }
+
+        $values = array_keys($matchedMakes);
+        natcasesort($values);
+        $values = array_values($values);
       } else {
         $category = esc_sql($params[0]);
         $year = (int) $params[1];
         $make = esc_sql($params[2]);
-        $select = "SELECT DISTINCT model FROM {$this->_mainTable} WHERE category = '{$category}' AND year_from <= {$year} AND year_to >= {$year} AND make = '{$make}' AND model != '' {$whereProducts} ORDER BY model";
-        $values = (array) $this->_wpdb->get_col($select);
+
+        $select = "SELECT model, year_from, year_to FROM {$this->_mainTable} WHERE category = '{$category}' AND make = '{$make}' AND model != '' {$whereProducts}";
+        $rows = (array) $this->_wpdb->get_results($select, ARRAY_A);
+
+        $globalMin = null;
+        $globalMax = null;
+        $boundsByModel = array();
+
+        foreach ($rows as $r){
+          $modelKey = (string) $r['model'];
+          $fromRaw = (int) $r['year_from'];
+          $toRaw = (int) $r['year_to'];
+
+          if (!isset($boundsByModel[$modelKey])){
+            $boundsByModel[$modelKey] = array('min' => null, 'max' => null);
+          }
+
+          if ($fromRaw > 0){
+            $boundsByModel[$modelKey]['min'] = is_null($boundsByModel[$modelKey]['min']) ? $fromRaw : min($boundsByModel[$modelKey]['min'], $fromRaw);
+            $boundsByModel[$modelKey]['max'] = is_null($boundsByModel[$modelKey]['max']) ? $fromRaw : max($boundsByModel[$modelKey]['max'], $fromRaw);
+            $globalMin = is_null($globalMin) ? $fromRaw : min($globalMin, $fromRaw);
+            $globalMax = is_null($globalMax) ? $fromRaw : max($globalMax, $fromRaw);
+          }
+
+          if ($toRaw > 0){
+            $boundsByModel[$modelKey]['min'] = is_null($boundsByModel[$modelKey]['min']) ? $toRaw : min($boundsByModel[$modelKey]['min'], $toRaw);
+            $boundsByModel[$modelKey]['max'] = is_null($boundsByModel[$modelKey]['max']) ? $toRaw : max($boundsByModel[$modelKey]['max'], $toRaw);
+            $globalMin = is_null($globalMin) ? $toRaw : min($globalMin, $toRaw);
+            $globalMax = is_null($globalMax) ? $toRaw : max($globalMax, $toRaw);
+          }
+        }
+
+        if (is_null($globalMin) || is_null($globalMax)){
+          $currentYear = (int) date('Y');
+          $globalMin = $currentYear;
+          $globalMax = $currentYear;
+        }
+
+        $matchedModels = array();
+
+        foreach ($rows as $r){
+          $model = (string) $r['model'];
+          $from = (int) $r['year_from'];
+          $to = (int) $r['year_to'];
+
+          $modelMin = isset($boundsByModel[$model]) ? $boundsByModel[$model]['min'] : null;
+          $modelMax = isset($boundsByModel[$model]) ? $boundsByModel[$model]['max'] : null;
+
+          if ($from == 0 && $to == 0){
+            $from = is_null($modelMin) ? $globalMin : $modelMin;
+            $to = is_null($modelMax) ? $globalMax : $modelMax;
+          } elseif ($from == 0){
+            $from = is_null($modelMin) ? $globalMin : $modelMin;
+          } elseif ($to == 0){
+            $to = is_null($modelMax) ? $globalMax : $modelMax;
+          }
+
+          if ($from <= $year && $to >= $year){
+            $matchedModels[$model] = 1;
+          }
+        }
+
+        $values = array_keys($matchedModels);
+        natcasesort($values);
+        $values = array_values($values);
       }
       
       return $values;             
@@ -144,13 +325,13 @@ class Pektsekye_Ymm_Model_Db
       $year = isset($values[1]) ? (int) $values[1] : 0;
               
       if ($level == 1){      
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}'";
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (category = '{$category}' or category = '')";
       } else if ($level == 2){
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0)";
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (category = '{$category}' or category = '') AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0)";
       } else if ($level == 3){
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '')";
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (category = '{$category}' or category = '') AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '')";
       } else {
-        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE category = '{$category}' AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '') AND (model = '".esc_sql($values[3])."' or model = '')";
+        $select = "SELECT DISTINCT product_id FROM {$this->_mainTable} WHERE (category = '{$category}' or category = '') AND (year_from <= {$year} or year_from=0) AND (year_to >= {$year} or year_to=0) AND (make = '".esc_sql($values[2])."' or make = '') AND (model = '".esc_sql($values[3])."' or model = '')";
       }
 
       return (array) $this->_wpdb->get_col($select);    

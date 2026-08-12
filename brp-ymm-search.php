@@ -266,8 +266,8 @@ final class Pektsekye_Ymm {
 
 
   public function enqueue_frontend_scripts() {
-    wp_enqueue_script('ymm', $this->_pluginUrl . 'view/frontend/web/main.js', array('jquery', 'jquery-ui-widget', 'jquery-cookie'));
-    wp_enqueue_style( 'ymm', $this->_pluginUrl . 'view/frontend/web/main.css' );	
+    wp_enqueue_script('ymm', $this->_pluginUrl . 'view/frontend/web/main.js', array('jquery', 'jquery-ui-widget', 'jquery-cookie'), '1.0.12.8.19', true);
+    wp_enqueue_style( 'ymm', $this->_pluginUrl . 'view/frontend/web/main.css', array(), '1.0.12.8.4' );	
     if (get_post_type() == 'product') {
       wp_enqueue_style( 'ymm_product_restriction', $this->_pluginUrl . 'view/frontend/web/product/restriction.css' );
     }      	  		  			
